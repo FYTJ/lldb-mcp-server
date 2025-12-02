@@ -83,4 +83,3 @@
 - 顶层：`src/`、`examples/`、`scripts/`、`README.md`、`pyproject.toml`、`config.json`
 - 服务端代码：`src/lldb_mcp_server/...`
 - 示例与客户端：`examples/client/c_test/hello/hello.c`、`examples/client/*`
-- 生成物与日志：忽略于版本库，由运行时自动创建（见 `.gitignore`）。
