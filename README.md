@@ -1,5 +1,7 @@
 # LLDB MCP Server
 
+语言: [中文](README.md) | [English](docs/README.en.md)
+
 ## 概述
 
 一个可通过 MCP 工具调用 LLDB 的服务器，提供会话管理、目标/进程控制、断点、执行控制、栈与变量、表达式、内存读写与事件轮询。
