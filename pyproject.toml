@@ -1,0 +1,27 @@
+[project]
+name = "lldb-mcp-server"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "mypy>=1.18.2",
+    "orjson>=3.11.4",
+    "pydantic>=2.12.5",
+    "pytest>=9.0.1",
+    "ruff>=0.14.6",
+    "typing-extensions>=4.15.0",
+]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+check_untyped_defs = false
+pretty = true
+show_error_codes = true
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+select = ["E", "F", "I"]
+ignore = []

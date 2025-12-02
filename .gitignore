@@ -1,0 +1,36 @@
+# Python caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.venv/
+.env
+
+# macOS
+.DS_Store
+
+# IDE configs
+.idea/
+.vscode/
+.trae/
+
+# Logs
+logs/
+scripts/logs/
+*.log
+
+# Build artifacts
+build/
+*.dSYM/
+client/hello
+client/hello.dSYM/
+examples/*.out
+
+# Misc
+rollout-*.jsonl
+
+# Node/npm (if any)
+node_modules/
+
