@@ -64,8 +64,8 @@
 - 示例客户端：
   - 入口：`MCP_HOST=127.0.0.1 MCP_PORT=8765 python3 examples/client/run_debug_flow.py`
   - 准备：`cd examples/client/c_test/hello && cc -g -O0 -o hello hello.c` 并设置 `TARGET_BIN=$(pwd)/hello`
-  - 连接：客户端仅通过 TCP 连接，不再支持 `stdio` 或 Unix Domain Socket。
-  - 若 `import lldb` 失败，服务端会尝试根据 `config.json` 自动补全环境（`lldb -P` 与 `xcode-select -p` 路径）；仍失败时按上节“配置 config.json”修正。
+  - 连接：客户端通过 TCP 连接
+  - 若 `import lldb` 失败，服务端会尝试根据 `config.json` 自动补全环境（`lldb -P` 与 `xcode-select -p` 路径）；仍失败时按“配置 config.json”修正。
 
 ## 一键启动
 
@@ -77,9 +77,3 @@
 ## 常见问题
 
 - `No module named lldb`：安装 Xcode/CLT，并在 Python 使用系统 LLDB 绑定；如果仍不可用，可先使用协议与工具映射进行开发，实际调试能力在有 LLDB 绑定时自动启用。
-
-## 目录结构
-
-- 顶层：`src/`、`examples/`、`scripts/`、`README.md`、`pyproject.toml`、`config.json`
-- 服务端代码：`src/lldb_mcp_server/...`
-- 示例与客户端：`examples/client/c_test/hello/hello.c`、`examples/client/*`

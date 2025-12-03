@@ -67,7 +67,7 @@ A server that invokes LLDB via MCP tools, providing session management, target/p
 - Example client:
   - Entry: `MCP_HOST=127.0.0.1 MCP_PORT=8765 python3 examples/client/run_debug_flow.py`
   - Prepare: `cd examples/client/c_test/hello && cc -g -O0 -o hello hello.c` and set `TARGET_BIN=$(pwd)/hello`
-  - Connection: the client uses TCP only; `stdio` and Unix Domain Socket are not supported anymore.
+  - Connection: the client uses TCP only.
   - If `import lldb` fails, the server tries to augment the environment according to `config.json` (`lldb -P` and `xcode-select -p`); if it still fails, fix your `config.json` per the section above.
 
 ## One-Click Start
@@ -79,10 +79,3 @@ A server that invokes LLDB via MCP tools, providing session management, target/p
 ## FAQ
 
 - `No module named lldb`: install Xcode/CLT and use the system LLDB Python binding. If unavailable, you can still develop using the protocol and tool mapping; the actual debugging capabilities will enable automatically when LLDB bindings become available.
-
-## Project Layout
-
-- Top-level: `src/`, `examples/`, `scripts/`, `README.md`, `pyproject.toml`, `config.json`
-- Server code: `src/lldb_mcp_server/...`
-- Examples & client: `examples/client/c_test/hello/hello.c`, `examples/client/*`
-- Build artifacts & logs: ignored by VCS, created at runtime (see `.gitignore`).
