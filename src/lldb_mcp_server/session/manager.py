@@ -192,16 +192,6 @@ class SessionManager:
             sess = self._get(session_id)
             if sess.debugger is None:
                 raise LLDBError(2000, "LLDB unavailable")
-            if config.allowed_root:
-                import os
-                real = os.path.realpath(file)
-                root = os.path.realpath(config.allowed_root)
-                if not real.startswith(root + os.sep) and real != root:
-                    raise LLDBError(
-                        7003,
-                        "Target outside allowed root",
-                        {"file": file, "allowed_root": config.allowed_root},
-                    )
             import lldb
             ro = lldb.SBCommandReturnObject()
             cmd = "target create \"" + file + "\""

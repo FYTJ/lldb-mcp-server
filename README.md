@@ -17,7 +17,6 @@
 - 关键字段：
   - `log_dir`：日志目录，默认 `logs`（不存在时会自动创建）。
   - `server_host`/`server_port`：TCP 监听地址与端口（用于 `--listen` 模式）。
-  - `allowed_root`：可调试的根目录限制（可选，提升安全性）。
   - `lldb.python_executable`：首选 Python 可执行文件（如 Xcode 的 `.../usr/bin/python3`）。
   - `lldb.python_paths`：`import lldb` 所需的 Python 路径：
     - 使用 `lldb -P` 输出的路径（推荐）
@@ -40,11 +39,10 @@
 
 - `LLDB_MCP_ALLOW_LAUNCH=1` 允许 `launch`
 - `LLDB_MCP_ALLOW_ATTACH=1` 允许 `attach`
-- `LLDB_MCP_ALLOWED_ROOT=/path/to/dir` 限定可调试路径（可选）
 
-## 运行（内部协议 STDIO）
+## 运行（TCP）
 
-- 启动：`PYTHONPATH=src LLDB_MCP_ALLOW_LAUNCH=1 LLDB_MCP_ALLOWED_ROOT=$(pwd)/examples/client/c_test/hello PYTHONUNBUFFERED=1 python3 -u -m lldb_mcp_server.mcp.server --listen 127.0.0.1:8765`
+- 启动：`PYTHONPATH=src LLDB_MCP_ALLOW_LAUNCH=1 PYTHONUNBUFFERED=1 python3 -u -m lldb_mcp_server.mcp.server --listen 127.0.0.1:8765`
 - 示例：
   - 创建会话：
     `{"id":"1","method":"initialize","params":{}}`
@@ -61,18 +59,18 @@
       - `breakpointSet`/`breakpointHit`：断点设置与命中（含线程和帧信息）
       - `stdout`/`stderr`：进程输出抓取
 
-## 客户端示例
+## 客户端示例（TCP-only）
 
 - 示例客户端：
   - 入口：`MCP_HOST=127.0.0.1 MCP_PORT=8765 python3 examples/client/run_debug_flow.py`
   - 准备：`cd examples/client/c_test/hello && cc -g -O0 -o hello hello.c` 并设置 `TARGET_BIN=$(pwd)/hello`
-  - 服务：可直接由客户端派生，或预先启动 `PYTHONPATH=src LLDB_MCP_ALLOW_LAUNCH=1 LLDB_MCP_ALLOWED_ROOT=$(pwd)/examples/client/c_test/hello PYTHONUNBUFFERED=1 python3 -u -m lldb_mcp_server.mcp.server --listen 127.0.0.1:8765`(建议)
+  - 连接：客户端仅通过 TCP 连接，不再支持 `stdio` 或 Unix Domain Socket。
   - 若 `import lldb` 失败，服务端会尝试根据 `config.json` 自动补全环境（`lldb -P` 与 `xcode-select -p` 路径）；仍失败时按上节“配置 config.json”修正。
 
 ## 一键启动
 
 - 构建示例目标：`cd examples/client/c_test/hello && cc -g -O0 -Wall -Wextra -o hello hello.c`
-- 启动服务端：`PYTHONPATH=src LLDB_MCP_ALLOW_LAUNCH=1 LLDB_MCP_ALLOWED_ROOT=$(pwd)/examples/client/c_test/hello PYTHONUNBUFFERED=1 python3 -u -m lldb_mcp_server.mcp.server --listen 127.0.0.1:8765`
+- 启动服务端：`PYTHONPATH=src LLDB_MCP_ALLOW_LAUNCH=1 PYTHONUNBUFFERED=1 python3 -u -m lldb_mcp_server.mcp.server --listen 127.0.0.1:8765`
 - 启动客户端：`TARGET_BIN=$(pwd)/examples/client/c_test/hello/hello MCP_HOST=127.0.0.1 MCP_PORT=8765 python3 examples/client/run_debug_flow.py`
 
 

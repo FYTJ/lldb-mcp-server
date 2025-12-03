@@ -12,10 +12,10 @@
   "categories": ["Debugging", "Developer Tools"],
   "os": ["macos"],
   "arch": ["arm64", "x86_64"],
-  "transport": "stdio",
+  "transport": "tcp",
   "entry": {
     "command": "python3",
-    "args": ["-u", "-m", "lldb_mcp_server.mcp.server"],
+    "args": ["-u", "-m", "lldb_mcp_server.mcp.server", "--listen", "127.0.0.1:8765"],
     "env": { "PYTHONPATH": "src" },
     "cwdRelative": "."
   },

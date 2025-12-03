@@ -163,13 +163,6 @@ def _process_message(line: str) -> str:
     _app_log.info("response %s", json.dumps(resp, ensure_ascii=False))
     return json.dumps(resp)
 
-def _serve_stdio():
-    for line in sys.stdin:
-        out = _process_message(line)
-        if out:
-            sys.stdout.write(out + "\n")
-            sys.stdout.flush()
-
 def _serve_socket(host: str, port: int):
     srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -209,7 +202,6 @@ def _serve_socket(host: str, port: int):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--listen", help="host:port to listen on")
-    parser.add_argument("--stdio", action="store_true", help="use stdio mode")
     args = parser.parse_args()
 
     def ensure_lldb_env(reexec=False):
@@ -260,7 +252,8 @@ def main():
                 for exe in candidates_py:
                     if Path(exe).exists() or exe == sys.executable:
                         try:
-                            os.execvpe(exe, [exe, "-u", "-m", "lldb_mcp_server.mcp.server"] + (["--listen", args.listen] if args.listen else (["--stdio"] if args.stdio else [])), env)
+                            listen_arg = args.listen or f"{config.server_host or '127.0.0.1'}:{getattr(config, 'server_port', 8765) or 8765}"
+                            os.execvpe(exe, [exe, "-u", "-m", "lldb_mcp_server.mcp.server", "--listen", listen_arg], env)
                         except Exception:
                             continue
             return False
@@ -317,13 +310,11 @@ def main():
 
     ensure_lldb_env(reexec=True)
 
-    if args.stdio or not args.listen:
-        _serve_stdio()
-    else:
-        hp = args.listen.split(":")
-        host = hp[0] or (config.server_host or "127.0.0.1")
-        port = int(hp[1]) if len(hp) > 1 else int(getattr(config, "server_port", 8765) or 8765)
-        _serve_socket(host, port)
+    listen_str = args.listen or f"{config.server_host or '127.0.0.1'}:{getattr(config, 'server_port', 8765) or 8765}"
+    hp = listen_str.split(":")
+    host = hp[0] or (config.server_host or "127.0.0.1")
+    port = int(hp[1]) if len(hp) > 1 else int(getattr(config, "server_port", 8765) or 8765)
+    _serve_socket(host, port)
 
 if __name__ == "__main__":
     main()

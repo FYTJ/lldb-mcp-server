@@ -2,7 +2,10 @@ import os
 import re
 import shlex
 import time
+import sys
 from pathlib import Path
+here = Path(__file__).resolve().parent
+sys.path.insert(0, str(here))
 from mcp_client import MCPClient
 from config import load_config
 
@@ -13,15 +16,7 @@ def main():
         raise RuntimeError("Set TARGET_BIN or client.target_bin in config.json")
     host = os.environ.get("MCP_HOST") or cfg.get("server_host")
     port = os.environ.get("MCP_PORT") or cfg.get("server_port")
-    unix_socket = os.environ.get("MCP_UNIX_SOCKET") or (cfg.get("client") or {}).get("unix_socket")
-    server_cmd_env = os.environ.get("LLDB_MCP_SERVER_CMD")
-    project_root = os.environ.get("LLDB_MCP_PROJECT_ROOT") or cfg.get("project_root")
-    src_path = os.environ.get("LLDB_MCP_SRC") or cfg.get("src_path")
-    server_cmd = shlex.split(server_cmd_env) if server_cmd_env else None
-    extra_env = {}
-    if src_path:
-        extra_env["PYTHONPATH"] = src_path
-    client = MCPClient(server_cmd=server_cmd, cwd=project_root or None, extra_env=extra_env, timeout=int(os.environ.get("LLDB_MCP_TIMEOUT", str((cfg.get("client") or {}).get("timeout", 30)))), project_root=project_root, src_path=src_path, host=host, port=port, unix_socket=unix_socket)
+    client = MCPClient(timeout=int(os.environ.get("LLDB_MCP_TIMEOUT", str((cfg.get("client") or {}).get("timeout", 30)))), host=host, port=port)
     sid = client.init_session()
     client.create_target(sid, target_bin)
     client.command(sid, "breakpoint set --name main")
@@ -53,8 +48,20 @@ def main():
     p = Path(tp)
     if p.exists():
         print(p.read_text(encoding="utf-8", errors="ignore"))
+    try:
+        tdir = Path(target_bin).resolve().parent
+        sdir = tdir / "logs" / "sessions"
+        sdir.mkdir(parents=True, exist_ok=True)
+        sp = sdir / (time.strftime("%Y%m%d_%H%M%S") + ".log")
+        sp.write_text(p.read_text(encoding="utf-8", errors="ignore"), encoding="utf-8", errors="ignore")
+        summ = tdir / "logs" / "lldb_summary.log"
+        summ.parent.mkdir(parents=True, exist_ok=True)
+        with open(summ, "a", encoding="utf-8", errors="ignore") as f:
+            f.write("会话结束\n")
+    except Exception:
+        pass
     client.close()
+    print("/compact")
 
 if __name__ == "__main__":
     main()
-
