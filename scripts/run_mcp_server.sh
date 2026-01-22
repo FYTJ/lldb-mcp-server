@@ -2,6 +2,7 @@
 set -euo pipefail
 HOST="${MCP_HOST:-127.0.0.1}"
 PORT="${MCP_PORT:-8765}"
+TRANSPORT="${MCP_TRANSPORT:-http}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SRC_PATH="$(cd "$SCRIPT_DIR/.." && pwd)/src"
 PYV="$(python3 -c 'import sys;print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
@@ -46,4 +47,4 @@ PYEXEC="/Applications/Xcode.app/Contents/Developer/usr/bin/python3"
 if [ ! -x "$PYEXEC" ]; then
   PYEXEC="python3"
 fi
-"$PYEXEC" -u -m lldb_mcp_server.mcp.server --listen "$HOST:$PORT"
+"$PYEXEC" -u -m lldb_mcp_server.fastmcp_server --transport "$TRANSPORT" --host "$HOST" --port "$PORT"

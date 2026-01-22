@@ -1,16 +1,25 @@
 [project]
 name = "lldb-mcp-server"
-version = "0.1.0"
-description = "Add your description here"
+version = "0.2.0"
+description = "A local debugging MCP server based on LLDB"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "mypy>=1.18.2",
+    "fastmcp>=2.0.0,<3",
     "orjson>=3.11.4",
     "pydantic>=2.12.5",
-    "pytest>=9.0.1",
-    "ruff>=0.14.6",
     "typing-extensions>=4.15.0",
+]
+
+[project.scripts]
+lldb-mcp = "lldb_mcp_server.fastmcp_server:main"
+
+[project.optional-dependencies]
+dev = [
+    "mypy>=1.18.2",
+    "pytest>=9.0.1",
+    "pytest-asyncio>=0.21.0",
+    "ruff>=0.14.6",
 ]
 
 [tool.mypy]

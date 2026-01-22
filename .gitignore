@@ -15,6 +15,7 @@ __pycache__/
 .idea/
 .vscode/
 .trae/
+.claude
 
 # Logs
 logs/
@@ -34,3 +35,7 @@ rollout-*.jsonl
 # Node/npm (if any)
 node_modules/
 
+# Dev docs
+dev_docs/
+CLAUDE.md
+AGENTS.md

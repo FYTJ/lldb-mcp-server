@@ -1,13 +1,11 @@
 import os
 import re
-import shlex
 import time
-import sys
 from pathlib import Path
-here = Path(__file__).resolve().parent
-sys.path.insert(0, str(here))
+
 from mcp_client import MCPClient
 from config import load_config
+
 
 def main():
     cfg = load_config()
@@ -20,28 +18,29 @@ def main():
     sid = client.init_session()
     client.create_target(sid, target_bin)
     client.command(sid, "breakpoint set --name main")
-    lr = client.launch(sid, [])
-    launched = isinstance(lr, dict) and (lr.get("pid") is not None)
+    launch_resp = client.launch(sid, [])
+    launched = isinstance(launch_resp, dict) and (launch_resp.get("process") or {}).get("pid") is not None
     ok = False
     if launched:
         for _ in range(10):
-            r = client.tools_call("lldb.threads", {"sessionId": sid})
+            r = client.tools_call("lldb_threads", {"sessionId": sid})
             if r and r.get("threads"):
                 ok = True
                 break
             time.sleep(0.2)
-    print(client.command(sid, "expr 1+1").get("transcript", ""))
-    t2 = client.command(sid, "expr &x").get("transcript", "")
+    print(client.command(sid, "expr 1+1").get("output", ""))
+    t2 = client.command(sid, "expr &x").get("output", "")
     print(t2)
     m = re.search(r"0x[0-9a-fA-F]+", t2)
     if m and ok:
         addr = int(m.group(0), 16)
-        print(client.set_watchpoint(sid, addr, 4, True, True).get("watchpointId", 0))
+        wp = client.set_watchpoint(sid, addr, 4, True, True).get("watchpoint", {})
+        print(wp.get("id", 0))
         print(client.read_memory(sid, addr, 32).get("bytes", ""))
     if launched and ok:
-        rr = client.command(sid, "register read").get("transcript", "")
+        rr = client.command(sid, "register read").get("output", "")
         print(rr)
-        pc = client.command(sid, "process continue").get("transcript", "")
+        pc = client.command(sid, "process continue").get("output", "")
         print(pc)
     tp = client.transcript_path(sid)
     print("Transcript:", tp)
@@ -60,8 +59,8 @@ def main():
             f.write("会话结束\n")
     except Exception:
         pass
-    client.close()
     print("/compact")
+
 
 if __name__ == "__main__":
     main()

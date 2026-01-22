@@ -16,7 +16,7 @@ A server that invokes LLDB via MCP tools, providing session management, target/p
 - Location: project root `config.json`; auto-loaded at runtime. You can also specify `LLDB_MCP_CONFIG=/path/to/config.json`.
 - Key fields:
   - `log_dir`: logs directory, default `logs` (auto-created if missing).
-  - `server_host`/`server_port`: TCP listen address/port (for `--listen` mode).
+  - `server_host`/`server_port`: HTTP/SSE address/port (for `--transport http|sse`).
   - `lldb.python_executable`: preferred Python executable (e.g., Xcode `.../usr/bin/python3`).
   - `lldb.python_paths`: Python paths required for `import lldb`:
     - Use `lldb -P` output (recommended)
@@ -40,18 +40,18 @@ A server that invokes LLDB via MCP tools, providing session management, target/p
 - `LLDB_MCP_ALLOW_LAUNCH=1` allow `launch`
 - `LLDB_MCP_ALLOW_ATTACH=1` allow `attach`
 
-## Run (TCP)
+## Run (FastMCP)
 
-- Start: `PYTHONPATH=src LLDB_MCP_ALLOW_LAUNCH=1 PYTHONUNBUFFERED=1 python3 -u -m lldb_mcp_server.mcp.server --listen 127.0.0.1:8765`
+- Start (HTTP): `PYTHONPATH=src LLDB_MCP_ALLOW_LAUNCH=1 PYTHONUNBUFFERED=1 python3 -u -m lldb_mcp_server.fastmcp_server --transport http --host 127.0.0.1 --port 8765`
 - Examples:
-  - Create session:
-    `{"id":"1","method":"initialize","params":{}}`
+  - Create session (POST `/tools/call`):
+    `{"name":"lldb_initialize","arguments":{}}`
   - Create target:
-    `{"id":"2","method":"createTarget","params":{"sessionId":"<SID>","file":"/path/app"}}`
+    `{"name":"lldb_createTarget","arguments":{"sessionId":"<SID>","file":"/path/app"}}`
   - Launch process:
-    `{"id":"3","method":"launch","params":{"sessionId":"<SID>","args":[]}}`
+    `{"name":"lldb_launch","arguments":{"sessionId":"<SID>","args":[]}}`
   - Poll events:
-    `{"id":"4","method":"pollEvents","params":{"sessionId":"<SID>","limit":32}}`
+    `{"name":"lldb_pollEvents","arguments":{"sessionId":"<SID>","limit":32}}`
 
 ## Events
 
@@ -62,18 +62,18 @@ A server that invokes LLDB via MCP tools, providing session management, target/p
   - `breakpointSet`/`breakpointHit`: breakpoint set/hit (with thread/frame info)
   - `stdout`/`stderr`: captured process output
 
-## Development & Verification (TCP-only)
+## Development & Verification (HTTP)
 
 - Example client:
   - Entry: `MCP_HOST=127.0.0.1 MCP_PORT=8765 python3 examples/client/run_debug_flow.py`
   - Prepare: `cd examples/client/c_test/hello && cc -g -O0 -o hello hello.c` and set `TARGET_BIN=$(pwd)/hello`
-  - Connection: the client uses TCP only.
+  - Connection: the client uses HTTP `/tools/call`.
   - If `import lldb` fails, the server tries to augment the environment according to `config.json` (`lldb -P` and `xcode-select -p`); if it still fails, fix your `config.json` per the section above.
 
 ## One-Click Start
 
 - Build example target: `cd examples/client/c_test/hello && cc -g -O0 -Wall -Wextra -o hello hello.c`
-- Start server: `PYTHONPATH=src LLDB_MCP_ALLOW_LAUNCH=1 PYTHONUNBUFFERED=1 python3 -u -m lldb_mcp_server.mcp.server --listen 127.0.0.1:8765`
+- Start server: `PYTHONPATH=src LLDB_MCP_ALLOW_LAUNCH=1 PYTHONUNBUFFERED=1 python3 -u -m lldb_mcp_server.fastmcp_server --transport http --host 127.0.0.1 --port 8765`
 - Start client: `TARGET_BIN=$(pwd)/examples/client/c_test/hello/hello MCP_HOST=127.0.0.1 MCP_PORT=8765 python3 examples/client/run_debug_flow.py`
 
 ## FAQ
