@@ -1,11 +1,16 @@
 # Python caches
 __pycache__/
 *.py[cod]
+*.egg-info/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
 .coverage
+htmlcov/
 .venv/
+.venv-lldb/
+venv/
+env/
 .env
 
 # macOS
@@ -15,7 +20,6 @@ __pycache__/
 .idea/
 .vscode/
 .trae/
-.claude
 
 # Logs
 logs/
@@ -28,14 +32,14 @@ build/
 client/hello
 client/hello.dSYM/
 examples/*.out
+examples/client/c_test/*/hello
+examples/client/c_test/*/a.out
 
 # Misc
 rollout-*.jsonl
 
 # Node/npm (if any)
+.uv-cache/
+.npm-cache/
+.npm-global/
 node_modules/
-
-# Dev docs
-dev_docs/
-CLAUDE.md
-AGENTS.md

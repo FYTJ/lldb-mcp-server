@@ -346,7 +346,13 @@ class SessionManager:
         except Exception:
             return None
 
-    def _write_transcript(self, session_id: str, command: str, output: str | None = None, error: str | None = None) -> None:
+    def _write_transcript(
+        self,
+        session_id: str,
+        command: str,
+        output: Optional[str] = None,
+        error: Optional[str] = None,
+    ) -> None:
         path = self._transcript_path(session_id)
         timestamp = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
         text = f"[{timestamp}] > {command}\n"
@@ -833,15 +839,26 @@ class SessionManager:
             sess = self._require_session(session_id)
             if not sess.process or not sess.process.IsValid():
                 raise LLDBError(2002, "No process running")
-            import ctypes
             import lldb
 
-            buf = ctypes.create_string_buffer(int(size))
             err = lldb.SBError()
-            read = sess.process.ReadMemory(int(addr), buf, int(size), err)
+            raw = b""
+            read = 0
+            try:
+                data = sess.process.ReadMemory(int(addr), int(size), err)
+                if isinstance(data, str):
+                    raw = data.encode()
+                else:
+                    raw = bytes(data)
+                read = len(raw)
+            except TypeError:
+                import ctypes
+
+                buf = ctypes.create_string_buffer(int(size))
+                read = sess.process.ReadMemory(int(addr), buf, int(size), err)
+                raw = buf.raw[:read]
             if err.Fail():
                 raise LLDBError(5001, "Memory read failed", {"error": err.GetCString()})
-            raw = buf.raw[:read]
             return {
                 "address": self._format_address(addr),
                 "size": int(read),
@@ -1079,7 +1096,7 @@ class SessionManager:
             for i in range(sess.target.GetNumModules()):
                 mod = sess.target.GetModuleAtIndex(i)
                 mod_name = mod.GetFileSpec().GetFilename()
-                mod_path = mod.GetFileSpec().GetPath()
+                mod_path = self._get_filespec_path(mod.GetFileSpec())
                 module_type = self._module_type(sess, mod)
                 load_addr = self._module_load_address(sess, mod)
                 sections = self._module_sections(sess, mod)
@@ -1107,7 +1124,7 @@ class SessionManager:
         if exe and exe == mod.GetFileSpec().GetFilename():
             return "executable"
         name = mod.GetFileSpec().GetFilename() or ""
-        if ".framework" in (mod.GetFileSpec().GetPath() or ""):
+        if ".framework" in self._get_filespec_path(mod.GetFileSpec()):
             return "framework"
         if name == "dyld":
             return "dylinker"
@@ -1177,10 +1194,23 @@ class SessionManager:
         return {
             "id": thread.GetThreadID(),
             "name": thread.GetName() or "",
-            "state": self._state_name(thread.GetState()),
             "stopReason": self._stop_reason_name(thread.GetStopReason()),
             "frameCount": thread.GetNumFrames(),
         }
+
+    def _get_filespec_path(self, filespec: Any) -> str:
+        """Get full path from SBFileSpec (compatible with LLDB 20+)."""
+        try:
+            directory = filespec.GetDirectory()
+            filename = filespec.GetFilename()
+            if directory and filename:
+                return directory + "/" + filename
+            elif filename:
+                return filename
+            else:
+                return ""
+        except Exception:
+            return ""
 
     def _frame_info(self, frame: Any, sess: Session, index: int) -> Dict[str, Any]:
         return {
@@ -1215,10 +1245,15 @@ class SessionManager:
         }
 
     def _watchpoint_info(self, wp: Any) -> Dict[str, Any]:
+        size = None
+        if hasattr(wp, "GetWatchSize"):
+            size = wp.GetWatchSize()
+        elif hasattr(wp, "GetByteSize"):
+            size = wp.GetByteSize()
         return {
             "id": wp.GetID(),
             "address": self._format_address(wp.GetWatchAddress()),
-            "size": wp.GetByteSize(),
+            "size": size,
             "read": wp.IsWatchingReads(),
             "write": wp.IsWatchingWrites(),
             "enabled": wp.IsEnabled(),

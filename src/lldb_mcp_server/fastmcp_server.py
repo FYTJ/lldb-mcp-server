@@ -6,6 +6,8 @@ import sys
 from pathlib import Path
 
 from fastmcp import FastMCP
+from starlette.requests import Request
+from starlette.responses import JSONResponse
 
 from .session.manager import SessionManager
 from .tools import (
@@ -27,7 +29,7 @@ logger = get_logger("lldb.fastmcp")
 mcp = FastMCP(
     name="LLDB MCP Server",
     version="0.2.0",
-    description="A local debugging MCP server based on LLDB",
+    instructions="A local debugging MCP server based on LLDB",
 )
 
 manager = SessionManager()
@@ -43,6 +45,30 @@ register_advanced_tools(mcp, manager)
 register_security_tools(mcp, manager)
 
 
+@mcp.custom_route("/tools/list", methods=["POST"], include_in_schema=False)
+async def tools_list_route(request: Request) -> JSONResponse:
+    """Compatibility endpoint for simple HTTP tool listing."""
+    tools = await mcp._list_tools_mcp()
+    return JSONResponse({"tools": [tool.model_dump(by_alias=True) for tool in tools]})
+
+
+@mcp.custom_route("/tools/call", methods=["POST"], include_in_schema=False)
+async def tools_call_route(request: Request) -> JSONResponse:
+    """Compatibility endpoint for simple HTTP tool calls."""
+    payload = await request.json()
+    name = payload.get("name")
+    if not name:
+        return JSONResponse({"error": {"message": "Missing tool name"}}, status_code=400)
+    arguments = payload.get("arguments") or {}
+    try:
+        result = await mcp._tool_manager.call_tool(key=name, arguments=arguments)
+    except Exception as exc:
+        return JSONResponse({"error": {"message": str(exc)}}, status_code=500)
+    if result.structured_content is not None:
+        return JSONResponse({"result": result.structured_content})
+    return JSONResponse({"result": result.content})
+
+
 def ensure_lldb_env(reexec: bool = False) -> bool:
     """Ensure the LLDB Python module can be imported."""
     try:
@@ -53,6 +79,10 @@ def ensure_lldb_env(reexec: bool = False) -> bool:
         logger.warning("lldb import failed: %s", str(exc))
         if reexec and os.environ.get("LLDB_MCP_REEXECED") != "1":
             env = os.environ.copy()
+            project_src = str(Path(__file__).resolve().parents[2])
+            existing = env.get("PYTHONPATH", "")
+            if project_src not in existing.split(os.pathsep):
+                env["PYTHONPATH"] = project_src + (os.pathsep + existing if existing else "")
             candidates = []
             if config.preferred_python_executable:
                 candidates.append(config.preferred_python_executable)

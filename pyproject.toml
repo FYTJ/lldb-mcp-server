@@ -3,9 +3,9 @@ name = "lldb-mcp-server"
 version = "0.2.0"
 description = "A local debugging MCP server based on LLDB"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.10"
 dependencies = [
-    "fastmcp>=2.0.0,<3",
+    "fastmcp>=2.0.0,<3; python_version >= '3.10'",
     "orjson>=3.11.4",
     "pydantic>=2.12.5",
     "typing-extensions>=4.15.0",
@@ -17,13 +17,14 @@ lldb-mcp = "lldb_mcp_server.fastmcp_server:main"
 [project.optional-dependencies]
 dev = [
     "mypy>=1.18.2",
-    "pytest>=9.0.1",
+    "pytest>=8.0.0,<9",
+    "pytest-cov>=4.1.0",
     "pytest-asyncio>=0.21.0",
     "ruff>=0.14.6",
 ]
 
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.10"
 ignore_missing_imports = true
 check_untyped_defs = false
 pretty = true
@@ -31,6 +32,6 @@ show_error_codes = true
 
 [tool.ruff]
 line-length = 120
-target-version = "py312"
+target-version = "py310"
 select = ["E", "F", "I"]
 ignore = []
