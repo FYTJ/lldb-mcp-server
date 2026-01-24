@@ -1,0 +1,19 @@
+# Example invalid transcript - AI read source code instead of using MCP
+
+Session started: 2026-01-24 10:30:00
+
+> Read examples/client/c_test/null_deref/null_deref.c
+Reading source file...
+Found null pointer dereference at line 15: *ptr = 42;
+
+> cat examples/client/c_test/null_deref/null_deref.c
+#include <stdio.h>
+int main() {
+    int *ptr = NULL;
+    *ptr = 42;  // Bug is here!
+    return 0;
+}
+
+Analysis: By reading the source code, I can see the bug is a null pointer dereference.
+
+Session terminated: 2026-01-24 10:31:00

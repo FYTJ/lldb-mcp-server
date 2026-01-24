@@ -56,13 +56,13 @@ for thread in result["threads"]:
 
 ### lldb_frames
 
-**Description**: Get stack frames for a specific thread.
+**Description**: Get stack frames for a thread.
 
 **Parameters**:
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | sessionId | string | Yes | The session ID |
-| threadId | integer | Yes | The thread ID |
+| threadId | integer | No | The thread ID (defaults to currently selected thread) |
 
 **Returns**:
 ```json
@@ -270,6 +270,8 @@ result = client.call_tool("lldb_evaluate", {
 - Expressions are evaluated in the target process
 - Function calls in expressions actually execute
 - Be careful with expressions that modify state
+- If the process is not stopped, you'll get an error suggesting to call `lldb_pause()` first
+- If debug symbols are missing, the tool will suggest using `lldb_readRegisters()` or `lldb_disassemble()` instead
 
 ---
 

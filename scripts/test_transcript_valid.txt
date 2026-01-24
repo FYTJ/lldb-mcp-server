@@ -1,0 +1,35 @@
+# Example valid transcript - AI used MCP tools correctly
+
+Session started: 2026-01-24 10:30:00
+
+> lldb_initialize
+Session created: session_abc123
+
+> lldb_createTarget
+Target created: /path/to/examples/client/c_test/null_deref/null_deref
+
+> lldb_launch
+Process launched with PID: 12345
+
+> lldb_pollEvents
+Event: processStateChanged - stopped
+Event: breakpointHit - location: main+0x10
+
+> lldb_stackTrace
+Frame 0: null_deref`main at null_deref.c:15
+Frame 1: libdyld.dylib`start + 1
+
+> lldb_analyzeCrash
+Crash type: SIGSEGV (Segmentation fault)
+Exploitability: EXPLOITABLE
+Analysis: Null pointer dereference at 0x0000000000000000
+
+> lldb_readRegisters
+rax = 0x0000000000000000
+rbx = 0x00007ffeefbff5a0
+rip = 0x0000000100003f5a
+
+> lldb_getTranscript
+Full transcript retrieved.
+
+Session terminated: 2026-01-24 10:35:00

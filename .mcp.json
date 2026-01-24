@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "lldb-debugger": {
+      "command": "python3",
+      "args": ["-m", "lldb_mcp_server.fastmcp_server"],
+      "env": {
+        "LLDB_MCP_ALLOW_LAUNCH": "1",
+        "LLDB_MCP_ALLOW_ATTACH": "1"
+      }
+    }
+  }
+}

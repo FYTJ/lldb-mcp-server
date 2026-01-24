@@ -1,0 +1,27 @@
+{
+  "scenario": "crash",
+  "required_tools": [
+    "lldb_initialize",
+    "lldb_createTarget",
+    "lldb_launch",
+    "lldb_pollEvents",
+    "lldb_stackTrace",
+    "lldb_analyzeCrash"
+  ],
+  "found_tools": [
+    "lldb_initialize",
+    "lldb_createTarget",
+    "lldb_launch",
+    "lldb_pollEvents",
+    "lldb_stackTrace",
+    "lldb_analyzeCrash"
+  ],
+  "missing_tools": [],
+  "source_reads": [],
+  "tools_found_count": 6,
+  "tools_required_count": 6,
+  "tools_coverage": "6/6 (100%)",
+  "valid": true,
+  "has_enough_tools": true,
+  "no_source_reads": true
+}
