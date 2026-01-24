@@ -129,6 +129,16 @@ Security-focused crash analysis:
 
 ## Design Patterns
 
+### Interactive Debugging Support
+
+The server is designed to support iterative, decision-based debugging workflows suitable for AI agents:
+
+- **State Inspection**: Tools like `lldb_frames` and `lldb_threads` provide rich state information.
+- **Error Guidance**: Tools return actionable error messages (e.g., "process not stopped") to guide the AI's next step.
+- **Optional Parameters**: Tools have sensible defaults (e.g., current thread) to reduce friction.
+
+See `skills/lldb-debugger/INTERACTIVE_DEBUGGING.md` for detailed workflows.
+
 ### Multi-Session Isolation
 
 Each debugging session maintains complete isolation:

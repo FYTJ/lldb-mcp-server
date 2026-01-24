@@ -1,0 +1,55 @@
+LLDB Debugging Transcript - Stack Overflow Binary
+================================================
+
+Session ID: 8c7cd150-7bd4-460b-97c5-b01018f6a4ae
+
+[2026-01-24 16:54:26] > target create /Users/zhuyanbo/PycharmProjects/lldb-mcp-server/examples/client/c_test/stack_overflow/stack_overflow
+Current executable set to '/Users/zhuyanbo/PycharmProjects/lldb-mcp-server/examples/client/c_test/stack_overflow/stack_overflow' (x86_64).
+
+[2026-01-24 16:59:43] > breakpoint set --name "recursive_function"
+Breakpoint 1: where = stack_overflow`recursive_function, address = 0x100000470
+
+[2026-01-24 16:59:47] > process launch
+Process launched successfully (pid: 86962)
+Process stopped at breakpoint
+
+[2026-01-24 17:00:33] > disassemble -n recursive_function
+stack_overflow`recursive_function:
+->  0x100000470 <+0>:  pushq  %rbp
+    0x100000471 <+1>:  movq   %rsp, %rbp
+    0x100000474 <+4>:  subq   $0x10, %rsp
+    0x100000478 <+8>:  movl   %edi, -0x4(%rbp)
+    0x10000047b <+11>: movl   -0x4(%rbp), %esi
+    0x10000047e <+14>: leaq   0x69(%rip), %rdi          ; "Recursion depth: %d\n"
+    0x100000485 <+21>: movb   $0x0, %al
+    0x100000487 <+23>: callq  0x1000004e8               ; symbol stub for: printf
+    0x10000048c <+28>: movl   -0x4(%rbp), %edi
+    0x10000048f <+31>: addl   $0x1, %edi
+    0x100000492 <+34>: callq  0x100000470               ; <+0>
+    0x100000497 <+39>: addq   $0x10, %rsp
+    0x10000049b <+43>: popq   %rbp
+    0x10000049c <+44>: retq
+    0x10000049d <+45>: nopl   (%rax)
+
+Key Observations:
+- No conditional jump instructions
+- Unconditional recursive call at <+34>
+- Code after recursive call is unreachable
+- Missing base case for termination
+
+Register State at First Call:
+    rdi = 0x0000000000000000 (depth = 0)
+    rsp = 0x00007ff7bfeff6b8
+
+Register State at Second Call:
+    rdi = 0x0000000000000001 (depth = 1)
+    rsp = 0x00007ff7bfeff698 (consumed 0x20 bytes)
+
+Final Crash State:
+    Thread: 4843293
+    Stop Reason: exception
+    Frame Count: 262,036
+    Stack Pointer: 0x00007ff7bf700000 (stack exhausted)
+    Crash Location: libsystem_c.dylib::_swrite (during printf call)
+
+Conclusion: Infinite recursion without termination condition

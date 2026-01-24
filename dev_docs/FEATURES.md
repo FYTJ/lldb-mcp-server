@@ -24,6 +24,17 @@ LLDB MCP Server provides 40 MCP tools for programmatic debugging of C/C++ applic
 | Module Management | 1 | Loaded modules listing | [12-module-management.md](features/12-module-management.md) |
 | Core Dump Support | 2 | Core dump load/create | [13-core-dump-support.md](features/13-core-dump-support.md) |
 
+## Interactive Debugging
+
+The MCP server is designed for interactive, iterative debugging. A comprehensive guide is available:
+
+**[INTERACTIVE_DEBUGGING.md](../skills/lldb-debugger/INTERACTIVE_DEBUGGING.md)**
+
+Key concepts covered:
+- **Crash Analysis Workflow**: Step-by-step diagnosis of crashes.
+- **Decision Trees**: How to choose the next tool based on current results.
+- **Common Patterns**: Variable inspection, conditional stepping, and more.
+
 ---
 
 ## Parameter Conventions

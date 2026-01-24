@@ -30,6 +30,44 @@ uv pip install -e ".[dev]"
 python -c "import lldb, fastmcp; print('OK')"
 ```
 
+## MCP Configuration
+
+**Standard Mode (Stdio)**: Recommended for Claude Code integration.
+File: `.mcp.json`
+
+```json
+{
+  "mcpServers": {
+    "lldb-debugger": {
+      "command": "/absolute/path/to/project/.venv/bin/python",
+      "args": ["-m", "lldb_mcp_server.fastmcp_server"],
+      "env": {
+        "LLDB_MCP_ALLOW_LAUNCH": "1",
+        "LLDB_MCP_ALLOW_ATTACH": "1"
+      }
+    }
+  }
+}
+```
+
+**⚠️ IMPORTANT:**
+- Use the **absolute path** to your virtual environment's Python
+- Do NOT use `python3` (system Python cannot access venv packages)
+- Example: `/Users/yourname/Projects/lldb-mcp-server/.venv/bin/python`
+
+**Development Mode (HTTP)**: For testing or manual inspection.
+File: `.mcp.json.http`
+
+## Troubleshooting
+
+**Issue: "ModuleNotFoundError: No module named 'lldb_mcp_server'"**
+
+This means `.mcp.json` is using system Python instead of the virtual environment Python.
+
+**Solution:** Update `.mcp.json` to use the absolute path to `.venv/bin/python`
+
+See `dev_docs/TROUBLESHOOTING.md` for detailed solutions to common issues.
+
 ## Development Commands
 
 ```bash
@@ -83,6 +121,10 @@ ruff check src/ && ruff format --check src/
 | Symbols | `lldb_searchSymbol`, `lldb_listModules` |
 | Core Dump | `lldb_loadCore`, `lldb_createCoredump` |
 
+## Interactive Debugging
+
+See `skills/lldb-debugger/INTERACTIVE_DEBUGGING.md` for comprehensive decision-based debugging workflows (crash analysis, variable inspection, etc.).
+
 ## Security Model
 
 Dangerous operations require explicit opt-in:
@@ -126,8 +168,10 @@ src/lldb_mcp_server/
 examples/client/c_test/    # Test programs (8 bug types)
 tests/                     # Unit tests
 tests/e2e/                 # End-to-end tests
-skills/lldb-debugger/      # Claude Code skill
+skills/lldb-debugger/      # Claude Code skill (includes INTERACTIVE_DEBUGGING.md)
 dev_docs/                  # Design & feature docs
+.mcp.json                  # Stdio config (Production)
+.mcp.json.http             # HTTP config (Development)
 ```
 
 ## Documentation Rules

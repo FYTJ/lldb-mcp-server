@@ -1,7 +1,7 @@
 {
   "mcpServers": {
     "lldb-debugger": {
-      "command": "python3",
+      "command": "/Users/zhuyanbo/PycharmProjects/lldb-mcp-server/.venv/bin/python",
       "args": ["-m", "lldb_mcp_server.fastmcp_server"],
       "env": {
         "LLDB_MCP_ALLOW_LAUNCH": "1",

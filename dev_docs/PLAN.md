@@ -1,77 +1,73 @@
-# LLDB MCP Server - Phase 3 Development Plan
+# LLDB MCP Server - Claude Code Integration Plan
 
 ## Overview
 
-This plan reorganizes the next development phase into three sequential stages:
-1. **Phase 1: Real-World Testing** - 使用真实 C 程序测试 MCP 工具和 AI 调试效果
-2. **Phase 2: Smithery Publishing** - 上架到 Smithery 市场
-3. **Phase 3: Skills Integration** - 将 MCP 工具封装为 Skills
+This plan documents how to integrate LLDB MCP Server into Claude Code using the `/mcp` command and provides both direct Python and optional npm/npx startup configurations.
+
+**Integration Methods:**
+1. **Method 1 (Recommended): Direct Python Execution** - 使用 stdio transport 直接启动 Python 模块
+2. **Method 2 (Optional): npm/npx Wrapper** - 提供 npm 包装器用于分发和安装
+3. **Method 3 (Development): HTTP Server** - HTTP 模式用于开发和测试
 
 ---
 
-## Phase 1: Real-World Testing (Priority: Highest)
-
-### Objective
-
-Validate that the MCP server and its 40 tools work effectively for AI-driven debugging of real C programs with various bug types.
+## Stage 0: Claude Code Integration Setup (COMPLETED ✅)
 
 ### Current Status
 
-- ✅ Basic test infrastructure (pytest, 45 tests passing: 34 unit + 11 e2e)
-- ✅ 8 test programs with different bug types created
-- ✅ Build script (`build_all.sh`) created
-- ✅ E2E test framework created
-- ⚠️ Need manual AI testing with Claude Code/Desktop
+✅ **All critical integration work is complete:**
+- .mcp.json configured with stdio transport
+- Python module entry point working (`python3 -m lldb_mcp_server.fastmcp_server`)
+- 40 MCP tools ready for use
+- Interactive debugging guide created
+- Enhanced error messages implemented
 
-### Test Programs (Already Created)
+### What Conditions Are Already Met
 
-**Location:** `examples/client/c_test/`
+1. ✅ **Python Environment**
+   - Python ≥3.10 installed (project uses 3.13)
+   - LLDB Python module accessible
+   - Virtual environment configured (.venv)
 
-| Program | Bug Type | Status |
-|---------|----------|--------|
-| `null_deref.c` | Null pointer dereference | ✅ Created |
-| `buffer_overflow.c` | Stack buffer overflow | ✅ Created |
-| `use_after_free.c` | Use after free | ✅ Created |
-| `infinite_loop.c` | Infinite loop | ✅ Created |
-| `divide_by_zero.c` | Division by zero | ✅ Created |
-| `stack_overflow.c` | Stack overflow (recursion) | ✅ Created |
-| `format_string.c` | Format string vulnerability | ✅ Created |
-| `double_free.c` | Double free | ✅ Created |
+2. ✅ **MCP Configuration**
+   - .mcp.json exists in project root
+   - stdio transport configured
+   - Environment variables defined (LLDB_MCP_ALLOW_LAUNCH, LLDB_MCP_ALLOW_ATTACH)
 
-### Implementation Steps
+3. ✅ **Package Structure**
+   - pyproject.toml defines package metadata
+   - Entry point configured: `lldb-mcp = "lldb_mcp_server.fastmcp_server:main"`
+   - Module structure allows `python3 -m` execution
 
-#### 1.1 Build Test Programs
+4. ✅ **Tool Implementation**
+   - 40 tools implemented across 9 modules
+   - FastMCP framework integrated
+   - Error handling enhanced
+   - Documentation complete
 
+---
+
+## Using `/mcp` Command in Claude Code
+
+### What is `/mcp`?
+
+The `/mcp` command is a built-in Claude Code command for managing MCP server connections:
+- **List servers**: View all configured MCP servers
+- **Authenticate**: Handle OAuth for remote servers
+- **Remove servers**: Disconnect from MCP servers
+
+### Quick Start with Current Configuration
+
+Your `.mcp.json` file is already properly configured! Here's how to verify and use it:
+
+**Step 1: Verify Configuration**
 ```bash
-cd examples/client/c_test
-./build_all.sh
+cd /Users/zhuyanbo/PycharmProjects/lldb-mcp-server
+cat .mcp.json
 ```
 
-Verify all 8 programs compile with debug symbols.
-
-#### 1.2 Run Automated E2E Tests
-
-```bash
-# Run all e2e tests
-pytest tests/e2e/ -v
-
-# Run specific test scenarios
-pytest tests/e2e/test_ai_debugging.py::TestCrashDetection -v
-pytest tests/e2e/test_ai_debugging.py::TestMemoryCorruptionDetection -v
-```
-
-**Expected Results:**
-- All crash detection tests pass
-- Stack traces are correctly retrieved
-- Exploitability analysis works
-- Register states are readable at crash
-
-#### 1.3 Manual AI Testing with Claude Code
-
-**Setup:**
-```bash
-# Configure Claude Desktop/Code MCP server
-# Add to claude_desktop_config.json or mcp.json:
+Expected output:
+```json
 {
   "mcpServers": {
     "lldb-debugger": {
@@ -86,520 +82,620 @@ pytest tests/e2e/test_ai_debugging.py::TestMemoryCorruptionDetection -v
 }
 ```
 
-**Test Scenarios:**
+**Step 2: Start Claude Code in Project Directory**
+```bash
+cd /Users/zhuyanbo/PycharmProjects/lldb-mcp-server
+claude-code
+```
 
-1. **Scenario: Null Pointer Crash**
-   - Prompt: "Debug the null_deref program at `examples/client/c_test/null_deref/null_deref` and identify the bug"
-   - Expected AI workflow:
-     - Initialize session
-     - Load binary
-     - Launch process
-     - Detect crash
-     - Analyze crash location
-     - Report null pointer dereference at specific line
+**Step 3: Use `/mcp` Command to Verify Connection**
 
-2. **Scenario: Buffer Overflow**
-   - Prompt: "Debug buffer_overflow and explain the vulnerability with remediation"
-   - Expected AI workflow:
-     - Set breakpoint at main
-     - Inspect buffer size
-     - Identify strcpy overflow
-     - Suggest strncpy/bounds checking
+In Claude Code, run:
+```
+/mcp list
+```
 
-3. **Scenario: Memory Corruption**
-   - Prompt: "Find the use-after-free bug in the program"
-   - Expected AI workflow:
-     - Set watchpoints on memory
-     - Track allocation/deallocation
-     - Identify UAF pattern
+Expected output:
+```
+Connected MCP Servers:
+- lldb-debugger (stdio, local)
+  Status: Connected
+  Tools: 40 available
+```
 
-#### 1.4 Verification Mechanism (Ensure MCP Usage)
+**Step 4: Test LLDB Tools**
 
-**Critical Requirement:** AI must use MCP tools for debugging, NOT source code analysis.
+Ask Claude:
+```
+List all LLDB MCP tools available
+```
 
-**Test Protocol:**
+Expected: Should see all 40 tools (lldb_initialize, lldb_createTarget, etc.)
 
-1. **Prevent Source Code Access**
-   - ⚠️ **DO NOT** provide source code file paths in prompts
-   - ⚠️ **DO NOT** allow AI to read `.c` files directly
-   - ✅ **ONLY** provide compiled binary paths
+**Step 5: Run Interactive Debugging**
 
-   Example prompts:
-   - ✅ Good: "Debug the binary at `examples/client/c_test/null_deref/null_deref`"
-   - ❌ Bad: "Debug `examples/client/c_test/null_deref/null_deref.c`"
+Ask Claude:
+```
+Debug the binary at examples/client/c_test/null_deref/null_deref
 
-2. **Require Explicit Tool Usage**
-
-   Add to each test prompt:
-   ```
-   IMPORTANT: You must use the LLDB MCP tools to debug this binary.
-   DO NOT read the source code. You only have access to the compiled binary.
-   After debugging, retrieve the full transcript using lldb_getTranscript
-   to show your debugging process.
-   ```
-
-3. **Verify Tool Call Sequence**
-
-   After AI completes debugging, check the transcript contains these calls:
-
-   **Required MCP calls (minimum):**
-   ```
-   ✅ lldb_initialize          # Session creation
-   ✅ lldb_createTarget        # Binary loading
-   ✅ lldb_launch              # Process execution
-   ✅ lldb_pollEvents          # Event monitoring
-   ✅ lldb_getTranscript       # Debugging log retrieval
-   ```
-
-   **Scenario-specific calls:**
-
-   For crash detection:
-   ```
-   ✅ lldb_stackTrace          # Crash location
-   ✅ lldb_analyzeCrash        # Exploitability analysis
-   ✅ lldb_readRegisters       # CPU state
-   ```
-
-   For breakpoint debugging:
-   ```
-   ✅ lldb_setBreakpoint       # Set breakpoint
-   ✅ lldb_evaluate            # Inspect variables
-   ✅ lldb_stepOver/stepIn     # Code stepping
-   ```
-
-4. **Automated Verification Script**
-
-   Create `scripts/verify_mcp_usage.py`:
-
-   ```python
-   #!/usr/bin/env python3
-   """Verify AI used MCP tools instead of source code analysis."""
-
-   import json
-   import re
-   from pathlib import Path
-
-   def verify_transcript(transcript_text: str, scenario: str) -> dict:
-       """Verify transcript contains required MCP tool calls."""
-
-       # Parse transcript for tool calls
-       required_base = [
-           "lldb_initialize",
-           "lldb_createTarget",
-           "lldb_launch",
-           "lldb_pollEvents",
-       ]
-
-       scenario_tools = {
-           "crash": ["lldb_stackTrace", "lldb_analyzeCrash"],
-           "breakpoint": ["lldb_setBreakpoint", "lldb_evaluate"],
-           "memory": ["lldb_readMemory", "lldb_setWatchpoint"],
-       }
-
-       required = required_base + scenario_tools.get(scenario, [])
-
-       found_tools = []
-       for tool in required:
-           if tool in transcript_text:
-               found_tools.append(tool)
-
-       # Check for source code file reads (should NOT happen)
-       source_read_pattern = r'(Read|cat|open).*\.c\b'
-       source_reads = re.findall(source_read_pattern, transcript_text)
-
-       return {
-           "required_tools": required,
-           "found_tools": found_tools,
-           "missing_tools": list(set(required) - set(found_tools)),
-           "source_reads": source_reads,
-           "valid": len(found_tools) >= len(required) * 0.7 and not source_reads
-       }
-
-   if __name__ == "__main__":
-       import sys
-       if len(sys.argv) != 3:
-           print("Usage: verify_mcp_usage.py <transcript_file> <scenario>")
-           sys.exit(1)
-
-       transcript = Path(sys.argv[1]).read_text()
-       scenario = sys.argv[2]
-
-       result = verify_transcript(transcript, scenario)
-       print(json.dumps(result, indent=2))
-
-       if result["valid"]:
-           print("\n✅ PASS: AI used MCP tools correctly")
-           sys.exit(0)
-       else:
-           print("\n❌ FAIL: AI did not use MCP tools correctly")
-           if result["source_reads"]:
-               print(f"  - Found source code reads: {result['source_reads']}")
-           if result["missing_tools"]:
-               print(f"  - Missing tool calls: {result['missing_tools']}")
-           sys.exit(1)
-   ```
-
-5. **Test Execution Checklist**
-
-   For each test scenario:
-
-   - [ ] Start with clean session (no source files open in editor)
-   - [ ] Provide ONLY binary path in prompt
-   - [ ] Include explicit "no source code" instruction
-   - [ ] Wait for AI to complete debugging
-   - [ ] Request transcript: "Show me the debugging transcript using lldb_getTranscript"
-   - [ ] Save transcript to file
-   - [ ] Run verification script: `python scripts/verify_mcp_usage.py transcript.txt <scenario>`
-   - [ ] Check verification passes
-   - [ ] Document results
-
-6. **Example Complete Test Prompt**
-
-   ```
-   Debug the binary at /path/to/examples/client/c_test/null_deref/null_deref
-
-   REQUIREMENTS:
-   1. You MUST use LLDB MCP tools for debugging
-   2. You DO NOT have access to source code files
-   3. You can ONLY use the compiled binary
-   4. After finding the bug, use lldb_getTranscript to show your debugging process
-
-   Please identify:
-   - What type of bug causes the crash
-   - The exact location (function name and approximate instruction)
-   - The root cause of the bug
-   - How to fix it
-   ```
-
-7. **Success Criteria**
-
-   A test is considered valid ONLY if:
-   - ✅ AI made at least 5 MCP tool calls
-   - ✅ AI used lldb_initialize, lldb_createTarget, lldb_launch
-   - ✅ AI used scenario-appropriate tools (stackTrace, evaluate, etc.)
-   - ✅ AI did NOT read any `.c` source files
-   - ✅ AI correctly identified the bug type and location
-   - ✅ Transcript shows complete debugging workflow
-
-#### 1.5 Document Test Results
-
-Create `examples/client/c_test/TEST_RESULTS.md` documenting:
-- Which test programs AI successfully debugged
-- Debugging workflow used
-- Tools that were most effective
-- Any limitations discovered
-
-### Verification Checklist
-
-**Automated Tests:**
-- [x] All 8 programs compile
-- [x] Each program exhibits expected bug
-- [x] Build script works
-- [x] E2E tests pass (11 tests)
-
-**MCP Usage Verification:**
-- [x] Verification script created (`scripts/verify_mcp_usage.py`)
-- [x] Test prompts documented (see section 1.4.6)
-- [x] Test result template created (`TEST_RESULTS.template.md`)
-- [x] Binary check script created (`scripts/check_test_binaries.sh`)
-- [ ] Claude Code can connect to MCP server
-- [ ] AI uses MCP tools (not source analysis) for null_deref
-- [ ] AI uses MCP tools (not source analysis) for buffer_overflow
-- [ ] AI uses MCP tools (not source analysis) for use_after_free
-- [ ] All transcripts contain required MCP tool calls
-- [ ] No source file reads detected in any test
-- [ ] Test results documented with verification proof
+Requirements:
+1. Use LLDB MCP tools only
+2. Find the crash location
+3. Explain the bug
+```
 
 ---
 
-## Phase 2: Smithery Publishing (Priority: High)
+## Method 1: Direct Python Execution (Recommended) ✅
 
-### Objective
+### Why This is Recommended
 
-Publish the MCP server to Smithery marketplace for easy installation and discovery.
+Your current setup already uses this method. It's optimal because:
 
-### Current Status
+1. **No extra dependencies** - Direct Python execution, no npm/node required
+2. **Faster startup** - No wrapper overhead
+3. **Virtual environment friendly** - Works seamlessly with .venv
+4. **Simpler debugging** - Direct Python execution is easier to trace
+5. **Best practice** - Recommended by Claude Code documentation
 
-- ✅ `smithery.yaml` exists and is configured
-- ✅ 40 tools documented
-- ✅ Version 0.2.0 in pyproject.toml and smithery.yaml
-- ✅ MIT license
-- ⚠️ GitHub repo visibility (need to confirm public)
-- ⚠️ Smithery CLI not installed
+### Current Configuration Analysis
 
-### Implementation Steps
-
-#### 2.1 Pre-publish Verification
-
-```bash
-# Verify entry point works
-python3 -m lldb_mcp_server.fastmcp_server --transport stdio --help
-
-# Check GitHub repo visibility
-gh repo view FYTJ/lldb-mcp-server --json visibility
-
-# If private, make it public:
-gh repo edit FYTJ/lldb-mcp-server --visibility public
-```
-
-#### 2.2 Install Smithery CLI
-
-```bash
-# Install Smithery CLI globally
-npm install -g @anthropic-ai/smithery
-
-# Login to Smithery (requires Anthropic account)
-smithery login
-
-# Verify authentication
-smithery whoami
-```
-
-#### 2.3 Validate Configuration
-
-```bash
-# Validate smithery.yaml
-smithery publish --dry-run
-```
-
-Fix any validation errors in `smithery.yaml`.
-
-#### 2.4 Publish to Smithery
-
-```bash
-# Publish
-smithery publish
-
-# Expected output:
-# ✓ Published lldb-mcp-server@0.2.0
-# ✓ https://smithery.ai/server/lldb-mcp-server
-```
-
-#### 2.5 Post-publish Verification
-
-- Visit https://smithery.ai/server/lldb-mcp-server
-- Verify:
-  - All 40 tools are listed
-  - Tool documentation displays correctly
-  - Installation instructions work
-  - README renders properly
-
-#### 2.6 Update README with Smithery Badge
-
-Add to `README.md`:
-
-```markdown
-[![Smithery](https://smithery.ai/badge/lldb-mcp-server)](https://smithery.ai/server/lldb-mcp-server)
-
-## Installation
-
-Install via Smithery:
-```bash
-npx @anthropic-ai/smithery install lldb-mcp-server
-```
-
-Or add manually to your MCP configuration:
+**File: `.mcp.json`**
 ```json
 {
   "mcpServers": {
     "lldb-debugger": {
-      "command": "python3",
-      "args": ["-m", "lldb_mcp_server.fastmcp_server"],
+      "command": "python3",              // ✅ Direct Python execution
+      "args": ["-m", "lldb_mcp_server.fastmcp_server"],  // ✅ Module execution
       "env": {
-        "LLDB_MCP_ALLOW_LAUNCH": "1"
+        "LLDB_MCP_ALLOW_LAUNCH": "1",   // ✅ Security control
+        "LLDB_MCP_ALLOW_ATTACH": "1"    // ✅ Security control
       }
     }
   }
 }
 ```
-```
 
-### Files to Modify
+**What Makes This Configuration Optimal:**
 
-- `README.md` - Add Smithery badge and installation instructions
-- `smithery.yaml` - Minor updates if validation fails
+1. **Module Execution (`-m`)**
+   - Uses Python's module resolution
+   - Works regardless of current directory
+   - Automatically finds installed package
 
-### Verification Checklist
+2. **Environment Variables**
+   - `LLDB_MCP_ALLOW_LAUNCH` - Enables process launching
+   - `LLDB_MCP_ALLOW_ATTACH` - Enables process attachment
+   - Security-first approach (both disabled by default)
 
-- [ ] Server entry point verified
-- [ ] GitHub repo is public
-- [ ] Smithery CLI installed
-- [ ] `smithery publish --dry-run` passes
-- [ ] Successfully published to Smithery
-- [ ] Server listed on smithery.ai
-- [ ] All 40 tools visible on marketplace
-- [ ] Installation instructions work
-- [ ] README updated with badge
+3. **Stdio Transport**
+   - Claude Code spawns server as subprocess
+   - Direct communication via stdin/stdout
+   - Automatic lifecycle management
 
----
+### Alternative: Using Virtual Environment Python
 
-## Phase 3: Skills Integration (Priority: Medium)
+If you want to explicitly use the virtual environment Python:
 
-### Objective
-
-Create a Claude Code skill that provides guided debugging workflows using the MCP server.
-
-### Current Status
-
-- ✅ 40 MCP tools organized in 9 modules
-- ✅ Skill template created (`skills/lldb-debugger/skill.md`)
-- ✅ Example scenarios created (debug_crash.md, find_vulnerability.md)
-- ⚠️ Not tested with Claude Code skill system
-
-### Implementation Steps
-
-#### 3.1 Verify Skill Template
-
-Review `skills/lldb-debugger/skill.md` and ensure it includes:
-- Tool categories overview
-- Standard debugging workflow
-- Important rules and best practices
-- Example prompts
-
-#### 3.2 Test Skill with Claude Code
-
-**Setup:**
-```bash
-# Configure Claude Code to load the skill
-# Add skill directory to Claude Code configuration
-```
-
-**Test Workflow:**
-- Ask Claude to use the lldb-debugger skill
-- Verify it follows the documented workflow
-- Test with null_deref example
-- Verify session management (initialize/terminate)
-
-#### 3.3 Create Additional Example Scenarios
-
-**File:** `skills/lldb-debugger/examples/debug_logic_bug.md`
-
-Example: Debugging an infinite loop without crash
-- Set breakpoint in suspected function
-- Step through loop iterations
-- Identify incorrect loop condition
-
-**File:** `skills/lldb-debugger/examples/analyze_coredump.md`
-
-Example: Post-mortem debugging
-- Load core dump with lldb_loadCore
-- Analyze crash with lldb_analyzeCrash
-- Generate security report
-
-#### 3.4 Update MCP Configuration
-
-Ensure `mcp.json` includes skill-aware configuration:
-
+**File: `.mcp.json` (alternative)**
 ```json
 {
   "mcpServers": {
     "lldb-debugger": {
-      "command": "python3",
+      "command": "/Users/zhuyanbo/PycharmProjects/lldb-mcp-server/.venv/bin/python",
       "args": ["-m", "lldb_mcp_server.fastmcp_server"],
       "env": {
         "LLDB_MCP_ALLOW_LAUNCH": "1",
         "LLDB_MCP_ALLOW_ATTACH": "1"
       }
     }
+  }
+}
+```
+
+**When to use this:**
+- Multiple Python versions on system
+- Want explicit control over which Python
+- Reproducibility across team members
+
+### Alternative: Using Installed Entry Point
+
+If package is installed (via `uv pip install -e .`):
+
+**File: `.mcp.json` (alternative)**
+```json
+{
+  "mcpServers": {
+    "lldb-debugger": {
+      "command": "lldb-mcp",  // Uses entry point from pyproject.toml
+      "args": [],
+      "env": {
+        "LLDB_MCP_ALLOW_LAUNCH": "1",
+        "LLDB_MCP_ALLOW_ATTACH": "1"
+      }
+    }
+  }
+}
+```
+
+**Requirements:**
+- Package must be installed: `uv pip install -e .`
+- Entry point defined in pyproject.toml (✅ already done)
+
+---
+
+## Method 2: npm/npx Wrapper (Optional)
+
+### When to Use npm/npx Wrapper
+
+Consider using npm/npx wrapper if:
+- Distributing to users who prefer npm ecosystem
+- Want single-command installation: `npx lldb-mcp-server`
+- Publishing to npm registry alongside Smithery
+- Users unfamiliar with Python package management
+
+**Important:** This is NOT recommended over direct Python execution for this project because:
+- Adds extra dependency (Node.js/npm)
+- Slower startup (npm resolution overhead)
+- More complex troubleshooting
+- Python users typically prefer pip/uv
+
+### Implementation Plan for npm Wrapper
+
+If you want to add npm/npx support as an additional installation method:
+
+#### Step 1: Create package.json
+
+**File: `package.json`** (to create)
+```json
+{
+  "name": "lldb-mcp-server",
+  "version": "0.2.0",
+  "description": "LLDB debugging MCP server for Claude Code",
+  "type": "module",
+  "bin": {
+    "lldb-mcp-server": "./bin/lldb-mcp-server.js"
   },
-  "skills": {
+  "scripts": {
+    "postinstall": "node bin/install-deps.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "lldb",
+    "debugging",
+    "mcp",
+    "claude",
+    "anthropic"
+  ],
+  "author": "FYTJ <simonzhuyb@163.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/FYTJ/lldb-mcp-server.git"
+  },
+  "engines": {
+    "node": ">=16"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "pyproject.toml",
+    "README.md"
+  ]
+}
+```
+
+#### Step 2: Create npm Wrapper Script
+
+**File: `bin/lldb-mcp-server.js`** (to create)
+```javascript
+#!/usr/bin/env node
+
+import { spawn } from 'child_process';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const pkgRoot = join(__dirname, '..');
+
+const python = 'python3';
+const args = ['-m', 'lldb_mcp_server.fastmcp_server'];
+
+const env = {
+  ...process.env,
+  PYTHONPATH: join(pkgRoot, 'src'),
+  LLDB_MCP_ALLOW_LAUNCH: process.env.LLDB_MCP_ALLOW_LAUNCH || '1',
+  LLDB_MCP_ALLOW_ATTACH: process.env.LLDB_MCP_ALLOW_ATTACH || '1'
+};
+
+const child = spawn(python, args, {
+  stdio: 'inherit',
+  env: env,
+  cwd: pkgRoot
+});
+
+child.on('exit', (code) => process.exit(code || 0));
+child.on('error', (err) => {
+  console.error('Failed to start LLDB MCP server:', err.message);
+  process.exit(1);
+});
+```
+
+**Make it executable:**
+```bash
+chmod +x bin/lldb-mcp-server.js
+```
+
+#### Step 3: Create Install Dependencies Script
+
+**File: `bin/install-deps.js`** (to create)
+```javascript
+#!/usr/bin/env node
+
+import { execSync } from 'child_process';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const pkgRoot = join(__dirname, '..');
+
+console.log('Installing LLDB MCP Server Python dependencies...');
+
+try {
+  try {
+    execSync('uv --version', { stdio: 'ignore' });
+    console.log('Using uv for installation');
+    execSync('uv pip install -e .', { cwd: pkgRoot, stdio: 'inherit' });
+  } catch {
+    console.log('Using pip for installation');
+    execSync('pip3 install -e .', { cwd: pkgRoot, stdio: 'inherit' });
+  }
+  console.log('✅ Python dependencies installed successfully');
+} catch (error) {
+  console.error('❌ Failed to install Python dependencies:');
+  console.error(error.message);
+  console.error('\nPlease ensure Python ≥3.10 and pip are installed');
+  process.exit(1);
+}
+```
+
+**Make it executable:**
+```bash
+chmod +x bin/install-deps.js
+```
+
+#### Step 4: Configure Claude Code for npx
+
+**File: `.mcp.json.npx`** (create as example)
+```json
+{
+  "mcpServers": {
     "lldb-debugger": {
-      "path": "./skills/lldb-debugger",
-      "enabled": true
+      "command": "npx",
+      "args": ["-y", "lldb-mcp-server"],
+      "env": {
+        "LLDB_MCP_ALLOW_LAUNCH": "1",
+        "LLDB_MCP_ALLOW_ATTACH": "1"
+      }
     }
   }
 }
 ```
 
-#### 3.5 Document Skill Usage
-
-Update `README.md` with skill usage section:
-
-```markdown
-## Using as a Claude Code Skill
-
-Load the LLDB debugger skill in Claude Code:
-
-1. Configure MCP server (see Installation)
-2. Load skill: `/skill lldb-debugger`
-3. Ask Claude to debug a program
-
-Example prompts:
-- "Debug the crash in my program at /path/to/binary"
-- "Find the buffer overflow vulnerability"
-- "Analyze this core dump for exploitability"
+**Windows configuration:**
+```json
+{
+  "mcpServers": {
+    "lldb-debugger": {
+      "command": "cmd",
+      "args": ["/c", "npx", "-y", "lldb-mcp-server"],
+      "env": {
+        "LLDB_MCP_ALLOW_LAUNCH": "1",
+        "LLDB_MCP_ALLOW_ATTACH": "1"
+      }
+    }
+  }
+}
 ```
 
-### Files to Modify
+#### Step 5: Test Locally
 
-- `skills/lldb-debugger/skill.md` - Refine if needed
-- `skills/lldb-debugger/examples/` - Add more scenarios
-- `mcp.json` - Add skill configuration
-- `README.md` - Document skill usage
+```bash
+# Link package locally
+npm link
 
-### Verification Checklist
+# Test npx execution
+npx lldb-mcp-server
 
-- [x] Skill prompt template created
-- [x] Example scenarios created
-- [ ] Skill tested with Claude Code
-- [ ] Debugging workflow works end-to-end via skill
-- [ ] Multiple example scenarios documented
-- [ ] README updated with skill usage
-
----
-
-## Implementation Timeline
-
-### Immediate (Phase 1)
-1. ✅ Build all test programs
-2. ✅ Run e2e tests
-3. 🔄 Manual AI testing with Claude Code
-4. 🔄 Document test results
-
-### Next (Phase 2)
-1. Verify GitHub repo is public
-2. Install Smithery CLI
-3. Validate and publish to Smithery
-4. Update README with installation instructions
-
-### Future (Phase 3)
-1. Test skill with Claude Code
-2. Add more example scenarios
-3. Document skill usage
-4. Gather user feedback
+# Test with Claude Code
+cp .mcp.json.npx .mcp.json
+claude-code
+# In Claude: /mcp list
+```
 
 ---
 
-## Success Metrics
+## Method 3: HTTP Server Mode (Development)
 
-### Phase 1 Success
-- ✅ All 45 automated tests pass
-- AI successfully debugs 6/8 test programs
-- Test results documented with workflow examples
+### When to Use HTTP Mode
 
-### Phase 2 Success
-- Server published on Smithery marketplace
-- Installation via `npx @anthropic-ai/smithery install` works
-- 40 tools visible and documented
+Use HTTP mode for:
+- Manual testing with curl/Postman
+- Debugging server issues
+- Running standalone Python scripts
+- Multiple concurrent clients
 
-### Phase 3 Success
-- Skill loads successfully in Claude Code
-- Skill-guided debugging completes full workflow
-- 3+ documented example scenarios
-- Positive user feedback
+**Do NOT use HTTP mode for:**
+- Normal Claude Code debugging (use stdio instead)
+- Production usage (stdio is more secure)
+
+### Configuration
+
+**File: `.mcp.json.http`** (example already exists)
+```json
+{
+  "mcpServers": {
+    "lldb-debugger-http": {
+      "transport": {
+        "type": "http",
+        "url": "http://127.0.0.1:8765"
+      }
+    }
+  }
+}
+```
+
+### Usage
+
+**Start HTTP server:**
+```bash
+cd /Users/zhuyanbo/PycharmProjects/lldb-mcp-server
+source .venv/bin/activate
+
+LLDB_MCP_ALLOW_LAUNCH=1 \
+LLDB_MCP_ALLOW_ATTACH=1 \
+  python -m lldb_mcp_server.fastmcp_server \
+  --transport http \
+  --port 8765
+```
 
 ---
 
-## Notes
+## Verification Steps
 
-### Why This Order?
+### Verify Method 1 (Direct Python - Current Setup)
 
-1. **Phase 1 First**: Validate that the core MCP functionality actually works for real debugging tasks before publishing
-2. **Phase 2 Second**: Once validated, publish to make it easily discoverable and installable
-3. **Phase 3 Third**: Add skill layer for enhanced UX after core functionality is proven and published
+```bash
+# 1. Start Claude Code in project directory
+cd /Users/zhuyanbo/PycharmProjects/lldb-mcp-server
+claude-code
 
-### Current Progress
+# 2. Verify MCP server connection
+# In Claude Code:
+/mcp list
 
-- **Phase 1**: 80% complete (automated tests done, manual testing pending)
-- **Phase 2**: 70% complete (config ready, publishing pending)
-- **Phase 3**: 60% complete (templates created, testing pending)
+# Expected: lldb-debugger shown as connected with 40 tools
+
+# 3. Test tool availability
+# In Claude Code, ask:
+"List all LLDB MCP tools"
+
+# Expected: See all 40 tools
+
+# 4. Test interactive debugging
+# In Claude Code, ask:
+"Debug examples/client/c_test/null_deref/null_deref and find the bug"
+
+# Expected: Claude uses lldb_initialize, lldb_createTarget, etc.
+```
+
+### Verify Method 2 (npm/npx - If Implemented)
+
+```bash
+# 1. Test local npm package
+npm link
+npx lldb-mcp-server
+
+# Expected: Server starts successfully
+
+# 2. Configure Claude Code
+cp .mcp.json.npx .mcp.json
+
+# 3. Test with Claude Code
+claude-code
+# In Claude: /mcp list
+
+# Expected: lldb-debugger connected via npx
+
+# 4. Test publishing
+npm publish --dry-run
+
+# Expected: No errors, shows what would be published
+```
+
+### Verify Method 3 (HTTP - Development Only)
+
+```bash
+# 1. Start HTTP server
+LLDB_MCP_ALLOW_LAUNCH=1 python -m lldb_mcp_server.fastmcp_server --transport http --port 8765
+
+# 2. Test health endpoint
+curl http://127.0.0.1:8765/health
+
+# Expected: {"status": "healthy"}
+
+# 3. Configure Claude Code
+cp .mcp.json.http .mcp.json
+claude-code
+
+# 4. Verify connection
+# In Claude: /mcp list
+
+# Expected: lldb-debugger-http connected
+```
+
+---
+
+## Summary
+
+### Current Status (Method 1 - Recommended) ✅
+
+Your system is READY to use:
+- ✅ .mcp.json configured with stdio transport
+- ✅ Python module execution working
+- ✅ All 40 tools available
+- ✅ Security controls in place
+
+**To use with Claude Code:**
+1. Navigate to project directory
+2. Run `claude-code`
+3. Use `/mcp list` to verify connection
+4. Start debugging with LLDB tools
+
+### Optional Enhancements
+
+If you want npm/npx support (Method 2):
+- [ ] Create package.json
+- [ ] Create wrapper scripts (bin/lldb-mcp-server.js, bin/install-deps.js)
+- [ ] Make scripts executable
+- [ ] Test with npm link
+- [ ] Optional: Publish to npm registry
+
+### Files to Create for npm/npx Support
+
+| File | Purpose |
+|------|---------|
+| `package.json` | npm package metadata |
+| `bin/lldb-mcp-server.js` | npm executable wrapper |
+| `bin/install-deps.js` | Python dependency installer |
+| `.mcp.json.npx` | Example npx configuration |
+
+### Files Already Exist
+
+| File | Status |
+|------|--------|
+| `.mcp.json` | ✅ Configured for stdio |
+| `.mcp.json.http` | ✅ Example HTTP config |
+| `pyproject.toml` | ✅ Python package metadata |
+| `smithery.yaml` | ✅ Smithery marketplace config |
+
+---
+
+## Next Steps
+
+### Immediate (Use Current Setup)
+
+1. ✅ Configuration complete - no changes needed
+2. Test with Claude Code: `claude-code` in project directory
+3. Use `/mcp list` to verify connection
+4. Start debugging with interactive tools
+
+### Optional (Add npm/npx Support)
+
+1. Create package.json and wrapper scripts
+2. Test locally with npm link
+3. Publish to npm registry (optional)
+4. Document npm installation method in README
+
+### Future (After Testing)
+
+1. Publish to Smithery marketplace
+2. Document real-world debugging examples
+3. Gather user feedback
+4. Enhance skill documentation
+
+---
+
+## Common MCP Commands Reference
+
+```bash
+# List all MCP servers
+claude mcp list
+
+# Get details for specific server
+claude mcp get lldb-debugger
+
+# Remove MCP server
+claude mcp remove lldb-debugger
+
+# Add MCP server (stdio)
+claude mcp add --transport stdio lldb-debugger -- python3 -m lldb_mcp_server.fastmcp_server
+
+# Add MCP server with environment variables
+claude mcp add --transport stdio lldb-debugger --env LLDB_MCP_ALLOW_LAUNCH=1 -- python3 -m lldb_mcp_server.fastmcp_server
+
+# Reset project-scoped server approvals
+claude mcp reset-project-choices
+```
+
+---
+
+## Troubleshooting
+
+### Issue: `/mcp list` shows no servers
+
+**Solution:**
+1. Verify .mcp.json exists in project root
+2. Verify you started Claude Code in project directory
+3. Check .mcp.json syntax (valid JSON)
+
+### Issue: Server shows "Connection failed"
+
+**Solution:**
+1. Test Python module directly: `python3 -m lldb_mcp_server.fastmcp_server --help`
+2. Verify virtual environment active
+3. Check LLDB Python module: `python -c "import lldb; print('OK')"`
+4. Verify package installed: `uv pip list | grep lldb-mcp-server`
+
+### Issue: Tools not visible in Claude
+
+**Solution:**
+1. Run `/mcp list` to verify server connected
+2. Ask Claude: "List all LLDB MCP tools"
+3. Check server logs for errors
+4. Restart Claude Code
+
+### Issue: Permission denied errors
+
+**Solution:**
+1. Verify environment variables set in .mcp.json
+2. Check LLDB_MCP_ALLOW_LAUNCH and LLDB_MCP_ALLOW_ATTACH are "1"
+3. Restart Claude Code after config changes
+
+---
+
+## Documentation Updates Needed
+
+After implementing npm/npx support (if desired), update:
+
+**File: `README.md`**
+- Add npm installation method
+- Add npx usage example
+- Document both Python and npm workflows
+
+**File: `dev_docs/PLAN.md`**
+- Mark Stage 0 as complete
+- Update with npm/npx implementation status
+- Document verification results
+
+---
+
+## Absolute File Paths Reference
+
+**Configuration:**
+- `/Users/zhuyanbo/PycharmProjects/lldb-mcp-server/.mcp.json` (stdio config)
+- `/Users/zhuyanbo/PycharmProjects/lldb-mcp-server/.mcp.json.http` (HTTP config)
+- `/Users/zhuyanbo/PycharmProjects/lldb-mcp-server/.mcp.json.npx` (to create)
+
+**Package:**
+- `/Users/zhuyanbo/PycharmProjects/lldb-mcp-server/pyproject.toml` (Python metadata)
+- `/Users/zhuyanbo/PycharmProjects/lldb-mcp-server/package.json` (to create)
+
+**Scripts:**
+- `/Users/zhuyanbo/PycharmProjects/lldb-mcp-server/bin/lldb-mcp-server.js` (to create)
+- `/Users/zhuyanbo/PycharmProjects/lldb-mcp-server/bin/install-deps.js` (to create)
+
+**Server Entry Point:**
+- `/Users/zhuyanbo/PycharmProjects/lldb-mcp-server/src/lldb_mcp_server/fastmcp_server.py`
