@@ -32,8 +32,40 @@ python -c "import lldb, fastmcp; print('OK')"
 
 ## MCP Configuration
 
-**Standard Mode (Stdio)**: Recommended for Claude Code integration.
-File: `.mcp.json`
+### Method 1: Using uvx (Recommended - Published Package)
+
+Install from PyPI and run with `uvx`:
+
+```bash
+# Generate .mcp.json with correct LLDB path
+./scripts/generate_mcp_config.sh
+```
+
+This creates `.mcp.json`:
+```json
+{
+  "mcpServers": {
+    "lldb-debugger": {
+      "command": "uvx",
+      "args": ["--python", "/usr/local/opt/python@3.13/bin/python3.13", "lldb-mcp-server"],
+      "env": {
+        "LLDB_MCP_ALLOW_LAUNCH": "1",
+        "LLDB_MCP_ALLOW_ATTACH": "1",
+        "PYTHONPATH": "/path/to/lldb/python/site-packages"
+      }
+    }
+  }
+}
+```
+
+**Benefits:**
+- ✅ Automatic package installation from PyPI
+- ✅ Version management built-in
+- ✅ No manual virtual environment setup needed
+
+### Method 2: Local Development (Virtual Environment)
+
+For local development with editable install:
 
 ```json
 {
@@ -55,7 +87,9 @@ File: `.mcp.json`
 - Do NOT use `python3` (system Python cannot access venv packages)
 - Example: `/Users/yourname/Projects/lldb-mcp-server/.venv/bin/python`
 
-**Development Mode (HTTP)**: For testing or manual inspection.
+### Development Mode (HTTP)
+
+For testing or manual inspection:
 File: `.mcp.json.http`
 
 ## Troubleshooting

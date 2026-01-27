@@ -1,319 +1,458 @@
 # LLDB MCP Server
 
-语言: [中文](README.md) | [English](docs/README.en.md)
+**Language:** [English](README.md) | [中文](docs/README.zh.md)
 
-## 概述
+[![Version](https://img.shields.io/badge/version-0.2.0-blue.svg)](https://github.com/FYTJ/lldb-mcp-server)
+[![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![PyPI](https://img.shields.io/pypi/v/lldb-mcp-server)](https://pypi.org/project/lldb-mcp-server/)
 
-一个可通过 MCP 工具调用 LLDB 的服务器，提供会话管理、目标/进程控制、断点、执行控制、栈与变量、表达式、寄存器读写、符号搜索、模块列表、内存读写、核心转储与崩溃分析、事件轮询。
+## Overview
 
-## 环境要求
+LLDB MCP Server is a debugging server based on the [Model Context Protocol (MCP)](https://modelcontextprotocol.io). It exposes LLDB debugging capabilities to AI assistants like Claude Code and Claude Desktop through 40 specialized tools, enabling AI-driven interactive debugging of C/C++ applications.
 
-### ✅ 推荐配置（Homebrew LLVM + Python 3.13）
+**Core Architecture:** Multi-session design where each debugging session has isolated `SBDebugger`, `SBTarget`, and `SBProcess` instances, supporting concurrent debugging workflows.
 
-**关键问题：** LLDB 与 FastMCP 的 Python 版本冲突
-- **Xcode LLDB**: 仅支持 Python 3.9.6
-- **FastMCP**: 需要 Python ≥3.10
+**Use Cases:**
+- AI-assisted debugging with Claude Code / Claude Desktop
+- Automated debugging scripts and workflows
+- Crash analysis and security vulnerability detection
+- Remote debugging and core dump analysis
 
-**解决方案：** 使用 Homebrew LLVM，其 LLDB 支持现代 Python 版本（3.10+）
+## Core Features
 
-**系统要求：**
-- macOS
-- Homebrew (`/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`)
-- `uv` 包管理器: `brew install uv`
+### 🔧 40 Debugging Tools
+
+| Category | Count | Function |
+|----------|-------|----------|
+| **Session Management** | 3 | Create, terminate, and list debugging sessions |
+| **Target Control** | 6 | Load binary, launch/attach process, restart, send signal, load core dump |
+| **Breakpoints** | 4 | Set, delete, list, update breakpoints (supports symbol, file:line, address, condition) |
+| **Execution Control** | 5 | Continue, pause, step in/over/out |
+| **Inspection** | 6 | Threads, stack frames, stack trace, expression evaluation |
+| **Memory Operations** | 2 | Read/write memory (supports Hex and ASCII views) |
+| **Watchpoints** | 3 | Set, delete, list memory watchpoints |
+| **Registers** | 2 | Read, write CPU registers |
+| **Symbols & Modules** | 2 | Symbol search, list loaded modules |
+| **Advanced Tools** | 4 | Event polling, raw LLDB command, disassemble, session transcript |
+| **Security Analysis** | 2 | Crash exploitability analysis, suspicious function detection |
+| **Core Dump** | 2 | Load/Create core dump |
+
+### ✨ Key Capabilities
+
+- **Multi-session Debugging**: Run multiple independent debugging sessions concurrently, with isolated state for each session.
+- **Event-driven Architecture**: Background event collection with non-blocking polling (state changes, breakpoint hits, stdout/stderr).
+- **Security Analysis**: Crash exploitability classification, dangerous function detection (strcpy, sprintf, etc.).
+- **Session Recording**: Automatically records all commands and output with timestamps.
+- **Flexible Breakpoints**: Supports symbol, file:line, and address breakpoints, as well as conditional breakpoints.
+- **Memory Debugging**: Memory read/write, watchpoint monitoring (read/write access).
+
+## Prerequisites
+
+### System Requirements
+
+- **macOS**
+- **Homebrew** ([Installation Guide](https://brew.sh/))
+- **Homebrew LLVM**
+- **Python 3.10+** (Installed via Homebrew)
 
 
-## 安装与环境配置
+## Quick Start
 
-### 方案一：Homebrew LLVM（推荐）
-
-**步骤 1：安装 LLVM 和 Python 3.13**
+### 1. Install Dependencies
 
 ```bash
-# 安装 LLVM（包含支持现代 Python 的 LLDB）
+# Install Homebrew LLVM (includes LLDB)
 brew install llvm
 
-# 安装 Python 3.13
-brew install python@3.13
+# Install uv (provides uvx command)
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# 验证安装
-/usr/local/opt/python@3.13/bin/python3.13 -V
-$(brew --prefix llvm)/bin/lldb --version
-```
-
-**步骤 2：配置 Shell 环境**
-
-在 `~/.zshrc` (或 `~/.bashrc`) 中添加：
-
-```bash
-# 将 Homebrew LLVM 添加到 PATH（优先于系统 LLDB）
+# Add Homebrew LLVM to PATH (add to ~/.zshrc)
 export PATH="$(brew --prefix llvm)/bin:$PATH"
-```
 
-重新加载配置：
-```bash
-source ~/.zshrc  # 或 source ~/.bashrc
-hash -r          # 清除命令缓存
-```
+# Reload shell configuration
+source ~/.zshrc
+hash -r
 
-验证 LLDB 来自 Homebrew：
-```bash
+# Verify LLDB installation
 which lldb
-# 期望输出: /usr/local/opt/llvm/bin/lldb（不是 /usr/bin/lldb）
-
 lldb --version
-lldb -P  # 查看 LLDB Python 路径
 ```
 
-**步骤 3：创建 Python 3.13 虚拟环境**
+### 2. Configure MCP
+
+#### Claude Code
+
+Create `.mcp.json` in your project root (see [MCP Configuration](#mcp-configuration)).
+
+#### Claude Desktop
+
+Edit `~/Library/Application Support/Claude/claude_desktop_config.json` on macOS (see [MCP Configuration](#mcp-configuration)).
+
+### 3. Start Using
+
+No manual installation required! When you configure the MCP server using `uvx`, it automatically:
+- Installs the package from PyPI
+- Manages dependencies
+- Runs the server in an isolated environment
+
+Just configure `.mcp.json` and start Claude Code or restart Claude Desktop.
+
+## MCP Configuration
+
+### Intel (x86_64)
+
+Create `.mcp.json` (Claude Code) in your project root or edit Claude Desktop configuration:
+
+```json
+{
+  "mcpServers": {
+    "lldb-debugger": {
+      "command": "uvx",
+      "args": ["--python", "/usr/local/opt/python@3.13/bin/python3.13", "lldb-mcp-server"],
+      "env": {
+        "LLDB_MCP_ALLOW_LAUNCH": "1",
+        "LLDB_MCP_ALLOW_ATTACH": "1"
+      }
+    }
+  }
+}
+```
+
+### Apple Silicon (arm64)
+
+```json
+{
+  "mcpServers": {
+    "lldb-debugger": {
+      "command": "uvx",
+      "args": ["--python", "/opt/homebrew/opt/python@3.13/bin/python3.13", "lldb-mcp-server"],
+      "env": {
+        "LLDB_MCP_ALLOW_LAUNCH": "1",
+        "LLDB_MCP_ALLOW_ATTACH": "1"
+      }
+    }
+  }
+}
+```
+
+**Important:** The `--python` argument specifies the full path to Homebrew Python 3.13, ensuring `uvx` does not use the system Python 3.9.
+
+### If LLDB Auto-detection Fails
+
+If the server cannot automatically find LLDB Python bindings, add `LLDB_PYTHON_PATH`:
+
+**Intel (x86_64):**
+```json
+{
+  "mcpServers": {
+    "lldb-debugger": {
+      "command": "uvx",
+      "args": ["--python", "/usr/local/opt/python@3.13/bin/python3.13", "lldb-mcp-server"],
+      "env": {
+        "LLDB_MCP_ALLOW_LAUNCH": "1",
+        "LLDB_MCP_ALLOW_ATTACH": "1",
+        "LLDB_PYTHON_PATH": "/usr/local/opt/llvm/lib/python3.13/site-packages"
+      }
+    }
+  }
+}
+```
+
+**Apple Silicon (arm64):**
+```json
+{
+  "mcpServers": {
+    "lldb-debugger": {
+      "command": "uvx",
+      "args": ["--python", "/opt/homebrew/opt/python@3.13/bin/python3.13", "lldb-mcp-server"],
+      "env": {
+        "LLDB_MCP_ALLOW_LAUNCH": "1",
+        "LLDB_MCP_ALLOW_ATTACH": "1",
+        "LLDB_PYTHON_PATH": "/opt/homebrew/opt/llvm/lib/python3.13/site-packages"
+      }
+    }
+  }
+}
+```
+
+### Environment Variables
+
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `LLDB_MCP_ALLOW_LAUNCH=1` | Allow launching new processes | Disabled |
+| `LLDB_MCP_ALLOW_ATTACH=1` | Allow attaching to existing processes | Disabled |
+| `LLDB_PYTHON_PATH` | Override LLDB Python module path | Auto-detect |
+
+## Tool Reference
+
+Full list of 40 MCP tools:
+
+### Session Management (3 tools)
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `lldb_initialize` | Create a new debug session | - |
+| `lldb_terminate` | Terminate a debug session | `sessionId` |
+| `lldb_listSessions` | List all active sessions | - |
+
+### Target Control (6 tools)
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `lldb_createTarget` | Load executable file | `sessionId`, `file` |
+| `lldb_launch` | Launch process | `sessionId`, `args`, `env` |
+| `lldb_attach` | Attach to running process | `sessionId`, `pid`/`name` |
+| `lldb_restart` | Restart process | `sessionId` |
+| `lldb_signal` | Send signal to process | `sessionId`, `signal` |
+| `lldb_loadCore` | Load core dump | `sessionId`, `corePath`, `executablePath` |
+
+### Breakpoints (4 tools)
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `lldb_setBreakpoint` | Set breakpoint | `sessionId`, `symbol`/`file:line`/`address` |
+| `lldb_deleteBreakpoint` | Delete breakpoint | `sessionId`, `breakpointId` |
+| `lldb_listBreakpoints` | List all breakpoints | `sessionId` |
+| `lldb_updateBreakpoint` | Modify breakpoint properties | `sessionId`, `breakpointId`, `enabled`, `condition` |
+
+### Execution Control (5 tools)
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `lldb_continue` | Continue execution | `sessionId` |
+| `lldb_pause` | Pause execution | `sessionId` |
+| `lldb_stepIn` | Step into function | `sessionId` |
+| `lldb_stepOver` | Step over function | `sessionId` |
+| `lldb_stepOut` | Step out of function | `sessionId` |
+
+### Inspection (6 tools)
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `lldb_threads` | List threads | `sessionId` |
+| `lldb_frames` | List stack frames | `sessionId`, `threadId` (optional) |
+| `lldb_stackTrace` | Get formatted stack trace | `sessionId`, `threadId` (optional) |
+| `lldb_selectThread` | Select thread | `sessionId`, `threadId` |
+| `lldb_selectFrame` | Select stack frame | `sessionId`, `frameIndex` |
+| `lldb_evaluate` | Evaluate expression | `sessionId`, `expression`, `frameIndex` (optional) |
+
+### Memory Operations (2 tools)
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `lldb_readMemory` | Read memory content | `sessionId`, `address`, `size` |
+| `lldb_writeMemory` | Write memory | `sessionId`, `address`, `data` |
+
+### Watchpoints (3 tools)
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `lldb_setWatchpoint` | Set memory watchpoint | `sessionId`, `address`, `size`, `read`, `write` |
+| `lldb_deleteWatchpoint` | Delete watchpoint | `sessionId`, `watchpointId` |
+| `lldb_listWatchpoints` | List all watchpoints | `sessionId` |
+
+### Registers (2 tools)
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `lldb_readRegisters` | Read CPU registers | `sessionId`, `threadId` (optional) |
+| `lldb_writeRegister` | Write register | `sessionId`, `name`, `value` |
+
+### Symbols & Modules (2 tools)
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `lldb_searchSymbol` | Search symbols | `sessionId`, `pattern`, `module` (optional) |
+| `lldb_listModules` | List loaded modules | `sessionId` |
+
+### Advanced Tools (4 tools)
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `lldb_pollEvents` | Poll debug events | `sessionId`, `limit` |
+| `lldb_command` | Execute raw LLDB command | `sessionId`, `command` |
+| `lldb_getTranscript` | Get session transcript | `sessionId` |
+| `lldb_disassemble` | Disassemble code | `sessionId`, `address`, `count` |
+
+### Security Analysis (2 tools)
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `lldb_analyzeCrash` | Analyze crash exploitability | `sessionId` |
+| `lldb_getSuspiciousFunctions` | Find suspicious functions | `sessionId` |
+
+### Core Dump (2 tools)
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `lldb_loadCore` | Load core dump | `sessionId`, `corePath`, `executablePath` |
+| `lldb_createCoredump` | Create core dump | `sessionId`, `path` |
+
+## Usage Examples
+
+### Example 1: Basic Debugging with Claude Code
+
+After configuring MCP, you can debug naturally in Claude Code:
+
+```
+User: "Debug the program at /path/to/my/app"
+
+Claude automatically executes:
+1. Calls lldb_initialize to create a session
+2. Calls lldb_createTarget to load the binary
+3. Calls lldb_setBreakpoint to set a breakpoint at main
+4. Calls lldb_launch to start the process
+5. Calls lldb_pollEvents to check for breakpoint hits
+6. Calls lldb_stackTrace to show the stack
+```
+
+### Example 2: Crash Analysis
+
+```
+User: "This program crashed, help me analyze the cause"
+
+Claude will:
+1. Call lldb_pollEvents to get the crash event
+2. Call lldb_analyzeCrash to classify the crash type
+3. Call lldb_stackTrace to show the crash stack
+4. Call lldb_readRegisters to check register state
+5. Call lldb_getSuspiciousFunctions to detect dangerous functions
+6. Provide repair suggestions
+```
+
+### Example 3: Memory Debugging
+
+```
+User: "Check if there is a buffer overflow at address 0x100000"
+
+Claude will:
+1. Call lldb_readMemory to check memory content
+2. Call lldb_setWatchpoint to monitor memory access
+3. Call lldb_continue to resume execution
+4. Call lldb_pollEvents to detect watchpoint hits
+5. Analyze memory access patterns
+```
+
+## Event Types
+
+Events obtained via `lldb_pollEvents`:
+
+| Event Type | Description |
+|------------|-------------|
+| `targetCreated` | Target created |
+| `processLaunched` | Process launched |
+| `processAttached` | Attached to process |
+| `processStateChanged` | Process state changed (running/stopped/exited) |
+| `breakpointSet` | Breakpoint set |
+| `breakpointHit` | Breakpoint hit (includes thread/frame info) |
+| `stdout` | Process standard output |
+| `stderr` | Process standard error output |
+
+## Troubleshooting
+
+### Issue: `No module named lldb`
+
+**Cause:** LLDB Python bindings are not configured correctly.
+
+**Solution:**
 
 ```bash
-# 删除旧的 venv（如果存在）
-deactivate 2>/dev/null || true
-rm -rf .venv
-
-# 使用 Python 3.13 创建 venv
-/usr/local/opt/python@3.13/bin/python3.13 -m venv .venv
-source .venv/bin/activate
-
-# 验证 Python 版本
-python -c "import sys; print(sys.version)"
-# 期望: Python 3.13.x
-```
-
-**步骤 4：将 LLDB Python 路径添加到虚拟环境**
-
-此步骤使 LLDB 模块永久可用，无需 PYTHONPATH：
-
-```bash
-# 获取 LLDB Python 模块路径
-LLDB_PY_PATH="$(lldb -P)"
-echo "LLDB Python 路径: $LLDB_PY_PATH"
-
-# 获取 venv 的 site-packages 目录
-SITE_PKGS="$(python -c 'import site; print(site.getsitepackages()[0])')"
-echo "Site packages: $SITE_PKGS"
-
-# 将 LLDB 路径写入 .pth 文件（永久 Python 路径配置）
-echo "$LLDB_PY_PATH" > "$SITE_PKGS/lldb.pth"
-```
-
-**步骤 5：验证 LLDB 导入（无需 PYTHONPATH）**
-
-```bash
-python - <<'PY'
-import lldb
-print("lldb 模块:", lldb.__file__)
-print("lldb 版本:", lldb.SBDebugger.GetVersionString())
-
-# 验证内部模块
-import lldb._lldb as m
-print("lldb._lldb:", m.__file__)
-PY
-```
-
-期望输出：
-```
-lldb 模块: /usr/local/opt/llvm/lib/python3.13/site-packages/lldb/__init__.py
-lldb 版本: lldb-<版本>
-lldb._lldb: /usr/local/opt/llvm/lib/python3.13/site-packages/lldb/_lldb.cpython-313-darwin.so
-```
-
-**步骤 6：安装项目依赖**
-
-```bash
-# 使用 uv 安装（推荐）
-uv pip install -e ".[dev]"
-
-# 或使用 pip
-pip install -e ".[dev]"
-
-# 验证 FastMCP 已安装
-python -c "import fastmcp; print('FastMCP:', fastmcp.__version__)"
-```
-
-**步骤 7：最终验证**
-
-```bash
-# 测试所有导入
-python -c "
-import lldb
-import fastmcp
-print('✅ LLDB 版本:', lldb.SBDebugger.GetVersionString())
-print('✅ FastMCP 版本:', fastmcp.__version__)
-print('✅ 两个模块都正常工作！')
-"
-```
-
----
-
-## 环境验证
-
-**验证安装是否成功：**
-
-```bash
-# 步骤 1：验证 LLDB 来自 Homebrew
+# 1. Verify LLDB is from Homebrew
 which lldb
-# 期望输出: /usr/local/opt/llvm/bin/lldb
 
+# 2. If not, check PATH configuration
+cat ~/.zshrc | grep llvm
+
+# 3. If missing, add to PATH
+echo 'export PATH="$(brew --prefix llvm)/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+hash -r
+
+# 4. Set LLDB_PYTHON_PATH in .mcp.json (see MCP Configuration section)
+```
+
+### Issue: LLDB still uses system version
+
+**Cause:** PATH configuration incorrect or terminal not restarted.
+
+**Solution:**
+
+```bash
+# 1. Reload shell configuration
+source ~/.zshrc
+hash -r
+
+# 2. Fully restart terminal
+
+# 3. Verify LLDB path
+which lldb
 lldb --version
-# 期望输出: LLDB 版本信息
-
-# 步骤 2：验证 Python 版本
-python --version
-# 期望输出: Python 3.13.x
-
-# 步骤 3：验证 LLDB 导入（无需 PYTHONPATH）
-python -c "import lldb; print(lldb.SBDebugger.GetVersionString())"
-# 期望输出: lldb-<版本>
-
-# 步骤 4：验证 FastMCP 安装
-python -c "import fastmcp; print('FastMCP:', fastmcp.__version__)"
-# 期望输出: FastMCP: <版本号>
-
-# 步骤 5：完整验证
-python - <<'PY'
-import lldb
-import fastmcp
-print('✅ LLDB 版本:', lldb.SBDebugger.GetVersionString())
-print('✅ FastMCP 版本:', fastmcp.__version__)
-print('✅ 环境配置完成！')
-PY
 ```
 
-**如果验证失败：**
+### Issue: `uvx` command not found
 
-1. **LLDB 仍来自 Xcode** (`/usr/bin/lldb`)
-   - 检查 `~/.zshrc` 或 `~/.bashrc` 是否添加了 PATH 配置
-   - 运行 `source ~/.zshrc && hash -r`
-   - 重新打开终端
+**Cause:** `uv` is not installed.
 
-2. **LLDB 导入失败**
-   - 检查 `.pth` 文件是否存在：
-     ```bash
-     SITE_PKGS="$(python -c 'import site; print(site.getsitepackages()[0])')"
-     cat "$SITE_PKGS/lldb.pth"
-     ```
-   - 如果不存在，重新运行步骤 4：
-     ```bash
-     LLDB_PY_PATH="$(lldb -P)"
-     SITE_PKGS="$(python -c 'import site; print(site.getsitepackages()[0])')"
-     echo "$LLDB_PY_PATH" > "$SITE_PKGS/lldb.pth"
-     ```
-
-3. **FastMCP 导入失败**
-   - 运行 `uv pip install -e ".[dev]"` 重新安装
-   - 检查 Python 版本是否 ≥3.10
-
-## 配置 config.json
-
-- 位置：项目根目录 `config.json`，运行时自动加载，亦可通过环境变量 `LLDB_MCP_CONFIG=/path/to/config.json` 指定。
-- 关键字段：
-  - `log_dir`：日志目录，默认 `logs`（不存在时会自动创建）。
-  - `server_host`/`server_port`：HTTP/SSE 地址与端口（用于 `--transport http|sse`）。
-  - `lldb.python_executable`：首选 Python 可执行文件（如 Xcode 的 `.../usr/bin/python3`）。
-  - `lldb.python_paths`：`import lldb` 所需的 Python 路径：
-    - 使用 `lldb -P` 输出的路径（推荐）
-    - 或 Xcode/CLT 提供的 `LLDB.framework/Resources/Python`
-  - `lldb.framework_paths`：`LLDB.framework` 所在目录，用于预加载与 `DYLD_*` 环境：
-    - 通过 `xcode-select -p` 获取开发者根，再检查：
-      - `${DEVROOT}/../SharedFrameworks`
-      - `${DEVROOT}/Library/PrivateFrameworks`
-  - `project_root`：项目根目录绝对路径（如 `$(pwd)`）。
-  - `src_path`：源码路径（通常为 `<project_root>/src`）。
-  - `client.target_bin`：示例客户端默认的被调试可执行路径；也可用环境变量 `TARGET_BIN` 覆盖。
-
-- 如何找到路径：
-  - `lldb -P` 获取 Python 路径（优先使用）。
-  - `which python3` 或 Xcode `.../usr/bin/python3` 设为 `python_executable`。
-  - `xcode-select -p` 得到 `${DEVROOT}`；将以上两类 Framework 路径加入 `framework_paths`。
-  - 其余字段按本机实际路径填写即可。
-
-## 安全配置
-
-- `LLDB_MCP_ALLOW_LAUNCH=1` 允许 `launch`
-- `LLDB_MCP_ALLOW_ATTACH=1` 允许 `attach`
-
-## 运行服务器
-
-**FastMCP 服务器 - HTTP 模式（测试用）：**
-```bash
-LLDB_MCP_ALLOW_LAUNCH=1 \
-LLDB_MCP_ALLOW_ATTACH=1 \
-  .venv/bin/python -m lldb_mcp_server.fastmcp_server \
-  --transport http --host 127.0.0.1 --port 8765
-```
-
-**FastMCP 服务器 - Stdio 模式（Claude Desktop）：**
-```bash
-LLDB_MCP_ALLOW_LAUNCH=1 \
-LLDB_MCP_ALLOW_ATTACH=1 \
-  .venv/bin/python -m lldb_mcp_server.fastmcp_server
-```
-
-**FastMCP 开发模式（自动重载）：**
-```bash
-LLDB_MCP_ALLOW_LAUNCH=1 \
-  fastmcp dev src/lldb_mcp_server/fastmcp_server.py
-```
-
----
-
-## 使用示例
-
-### FastMCP 服务器（HTTP 模式）
-
-**启动服务器：**
-```bash
-LLDB_MCP_ALLOW_LAUNCH=1 LLDB_MCP_ALLOW_ATTACH=1 \
-  .venv/bin/python -m lldb_mcp_server.fastmcp_server \
-  --transport http --host 127.0.0.1 --port 8765
-```
-
-**测试工具调用：**
-- 示例：
-  - 创建会话（POST `/tools/call`）：
-    `{"name":"lldb_initialize","arguments":{}}`
-  - 创建目标：
-    `{"name":"lldb_createTarget","arguments":{"sessionId":"<SID>","file":"/path/app"}}`
-  - 启动进程：
-    `{"name":"lldb_launch","arguments":{"sessionId":"<SID>","args":[]}}`
-  - 轮询事件：
-    `{"name":"lldb_pollEvents","arguments":{"sessionId":"<SID>","limit":32}}`
-    - 事件类型示例：
-      - `targetCreated`：目标创建
-      - `processStateChanged`：进程状态变化（running/stopped/exited 等）
-      - `breakpointHit`：断点命中
-      - `stdout`/`stderr`：进程输出抓取
-
-## 客户端示例（HTTP）
-
-### 准备测试程序
+**Solution:**
 
 ```bash
-# 编译测试程序
-cd examples/client/c_test/hello
-cc -g -O0 -Wall -Wextra -o hello hello.c
-cd ../../../..
+# Install uv (provides uvx)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Verify installation
+which uvx
+uvx --version
 ```
 
-### 运行示例客户端
+### Issue: Permission denied when launching/attaching
 
-**使用 Homebrew LLDB：**
-```bash
-# 启动服务器（终端 1）
-LLDB_MCP_ALLOW_LAUNCH=1 LLDB_MCP_ALLOW_ATTACH=1 \
-  .venv/bin/python -m lldb_mcp_server.fastmcp_server \
-  --transport http --host 127.0.0.1 --port 8765
+**Cause:** Security environment variables not set.
 
-# 运行客户端（终端 2）
-TARGET_BIN=$(pwd)/examples/client/c_test/hello/hello \
-MCP_HOST=127.0.0.1 \
-MCP_PORT=8765 \
-  .venv/bin/python examples/client/run_debug_flow.py
+**Solution:**
+
+Ensure `.mcp.json` contains:
+```json
+"env": {
+  "LLDB_MCP_ALLOW_LAUNCH": "1",
+  "LLDB_MCP_ALLOW_ATTACH": "1"
+}
 ```
 
+## Project Structure
 
+```
+lldb-mcp-server/
+├── src/lldb_mcp_server/
+│   ├── fastmcp_server.py      # MCP entry point
+│   ├── session/
+│   │   └── manager.py          # SessionManager (core)
+│   ├── tools/                  # 9 tool modules
+│   │   ├── session.py          # Session management
+│   │   ├── target.py           # Target control
+│   │   ├── breakpoints.py      # Breakpoints
+│   │   ├── execution.py        # Execution control
+│   │   ├── inspection.py       # Inspection
+│   │   ├── memory.py           # Memory operations
+│   │   ├── watchpoints.py      # Watchpoints
+│   │   ├── registers.py        # Registers
+│   │   └── advanced.py         # Advanced tools
+│   └── analysis/
+│       └── exploitability.py   # Crash analysis
+├── .mcp.json.uvx               # MCP config template
+├── pyproject.toml              # Package config
+├── LICENSE                     # MIT License
+└── README.md                   # English documentation
+```
 
-## 常见问题
+## License
 
-- `No module named lldb`：安装 Xcode/CLT，并在 Python 使用系统 LLDB 绑定；如果仍不可用，可先使用协议与工具映射进行开发，实际调试能力在有 LLDB 绑定时自动启用。
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Links
+
+- **PyPI Package**: [https://pypi.org/project/lldb-mcp-server/](https://pypi.org/project/lldb-mcp-server/)
+- **Source Code**: [https://github.com/FYTJ/lldb-mcp-server](https://github.com/FYTJ/lldb-mcp-server)
+- **Issues**: [https://github.com/FYTJ/lldb-mcp-server/issues](https://github.com/FYTJ/lldb-mcp-server/issues)
+- **MCP Documentation**: [https://modelcontextprotocol.io](https://modelcontextprotocol.io)

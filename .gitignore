@@ -21,6 +21,27 @@ env/
 .vscode/
 .trae/
 
+# MCP config (user-specific, use .mcp.json.uvx as template)
+.mcp.json
+
+# Development docs and examples (not for public release)
+dev_docs/
+examples/
+tests/
+scripts/
+
+# IDE and AI assistant configs
+.claude/
+.codex/
+
+# dev docs
+AGENTS.md
+CLAUDE.md
+dev_docs/
+
+# test files
+examples/
+
 # Logs
 logs/
 scripts/logs/

@@ -1,11 +1,12 @@
 {
   "mcpServers": {
     "lldb-debugger": {
-      "command": "/Users/zhuyanbo/PycharmProjects/lldb-mcp-server/.venv/bin/python",
-      "args": ["-m", "lldb_mcp_server.fastmcp_server"],
+      "command": "uvx",
+      "args": ["--python", "/usr/local/opt/python@3.13/bin/python3.13", "lldb-mcp-server"],
       "env": {
         "LLDB_MCP_ALLOW_LAUNCH": "1",
-        "LLDB_MCP_ALLOW_ATTACH": "1"
+        "LLDB_MCP_ALLOW_ATTACH": "1",
+        "PYTHONPATH": "/usr/local/Cellar/llvm/20.1.5/libexec/python3.13/site-packages"
       }
     }
   }

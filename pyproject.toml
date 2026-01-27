@@ -4,6 +4,20 @@ version = "0.2.0"
 description = "A local debugging MCP server based on LLDB"
 readme = "README.md"
 requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "FYTJ", email = "simonzhuyb@163.com"}]
+keywords = ["lldb", "mcp", "debugging", "claude", "anthropic", "debugger"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Debuggers",
+]
 dependencies = [
     "fastmcp>=2.0.0,<3; python_version >= '3.10'",
     "orjson>=3.11.4",
@@ -11,8 +25,14 @@ dependencies = [
     "typing-extensions>=4.15.0",
 ]
 
+[project.urls]
+Homepage = "https://github.com/FYTJ/lldb-mcp-server"
+Repository = "https://github.com/FYTJ/lldb-mcp-server.git"
+Documentation = "https://github.com/FYTJ/lldb-mcp-server#readme"
+Issues = "https://github.com/FYTJ/lldb-mcp-server/issues"
+
 [project.scripts]
-lldb-mcp = "lldb_mcp_server.fastmcp_server:main"
+lldb-mcp-server = "lldb_mcp_server.fastmcp_server:main"
 
 [project.optional-dependencies]
 dev = [
