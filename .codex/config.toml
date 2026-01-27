@@ -1,8 +1,0 @@
-[mcp_servers.lldb-debugger]
-command = "/Users/zhuyanbo/PycharmProjects/lldb-mcp-server/.venv/bin/python"
-args = ["-m", "lldb_mcp_server.fastmcp_server"]
-cwd = "/Users/zhuyanbo/PycharmProjects/lldb-mcp-server"
-
-[mcp_servers.lldb-debugger.env]
-LLDB_MCP_ALLOW_LAUNCH = "1"
-LLDB_MCP_ALLOW_ATTACH = "1"
