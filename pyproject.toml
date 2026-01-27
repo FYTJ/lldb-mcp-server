@@ -1,7 +1,7 @@
 [project]
 name = "lldb-mcp-server"
 version = "0.2.0"
-description = "A local debugging MCP server based on LLDB"
+description = "AI-powered C/C++ debugger via LLDB and Model Context Protocol. 40 debugging tools for Claude Code and Claude Desktop."
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}

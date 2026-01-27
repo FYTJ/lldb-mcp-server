@@ -290,6 +290,91 @@ Full list of 40 MCP tools:
 | `lldb_loadCore` | Load core dump | `sessionId`, `corePath`, `executablePath` |
 | `lldb_createCoredump` | Create core dump | `sessionId`, `path` |
 
+## Claude Code Skill Integration
+
+This project includes a pre-built **debugging skill** for Claude Code that provides AI-guided debugging workflows. The skill teaches Claude when and how to use LLDB debugging tools effectively.
+
+### Installing the Skill
+
+The skill is located in `skills/lldb-debug/` directory. To install it:
+
+**Option 1: Project-specific (recommended for testing)**
+```bash
+# The skill is already in the project's .claude/skills/ directory
+# Claude Code will automatically detect it when working in this project
+```
+
+**Option 2: Global installation (for all projects)**
+```bash
+# Copy to your personal skills directory
+cp -r skills/lldb-debug ~/.claude/skills/
+```
+
+### Using the Skill
+
+Once the MCP server is configured, you can invoke the skill:
+
+**Manual invocation:**
+```bash
+/lldb-debug path/to/binary
+```
+
+**Automatic invocation:**
+Claude will automatically use debugging tools when appropriate if you describe debugging tasks like:
+- "Debug this crashed program"
+- "Find the buffer overflow in this binary"
+- "Analyze this core dump"
+
+### When the Skill Activates
+
+The skill is designed to activate **ONLY** when direct code analysis is insufficient:
+
+1. **Project complexity** makes static analysis unreliable
+2. **Error logs are missing** or don't indicate root cause
+3. **Multiple code fixes have failed**
+4. **Runtime behavior analysis** is required (memory corruption, crashes, etc.)
+
+The skill will **NOT** activate for simple issues that can be solved through code review alone.
+
+### Skill Capabilities
+
+The debugging skill provides:
+
+- **Debugging mindset**: Scientific method, binary search localization, minimal reproduction
+- **Error type classification**: Null pointer, buffer overflow, use-after-free, etc.
+- **Assembly-level debugging**: Compiler optimization issues, ABI mismatches, binary-only debugging
+- **Multi-session strategy**: Iterative debugging with session limits and structured logging
+- **Decision trees**: Automated workflows for common debugging patterns
+- **Quick reference**: Scenario-based tool combinations and troubleshooting guides
+
+### Test Programs
+
+The project includes test programs with intentional bugs for skill validation:
+
+```bash
+# Build all test programs
+cd examples/client/c_test
+./build_all.sh
+
+# Test programs available:
+examples/client/c_test/
+├── null_deref/          # Null pointer dereference
+├── buffer_overflow/     # Stack buffer overflow
+├── use_after_free/      # Use-after-free
+├── divide_by_zero/      # Division by zero
+├── stack_overflow/      # Stack overflow via recursion
+├── format_string/       # Format string vulnerability
+├── double_free/         # Double free
+└── infinite_loop/       # Infinite loop
+```
+
+### Skill Documentation
+
+Full debugging guide is available in the skill file:
+- **Location**: `skills/lldb-debug/SKILL.md`
+- **Content**: 700+ lines of comprehensive debugging methodologies
+- **Coverage**: Mindset, workflows, error types, strategies, decision trees, reference tables
+
 ## Usage Examples
 
 ### Example 1: Basic Debugging with Claude Code
