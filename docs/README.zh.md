@@ -84,6 +84,38 @@ lldb --version
 
 #### Claude Code
 
+**方式 1：命令行配置（全局，推荐）**
+
+Intel (x86_64):
+```bash
+claude mcp add-json --scope user lldb-debugger '{
+  "type": "stdio",
+  "command": "uvx",
+  "args": ["--python", "/usr/local/opt/python@3.13/bin/python3.13", "lldb-mcp-server"],
+  "env": {
+    "LLDB_MCP_ALLOW_LAUNCH": "1",
+    "LLDB_MCP_ALLOW_ATTACH": "1",
+    "PYTHONPATH": "/usr/local/opt/llvm/lib/python3.13/site-packages"
+  }
+}'
+```
+
+Apple Silicon (arm64):
+```bash
+claude mcp add-json --scope user lldb-debugger '{
+  "type": "stdio",
+  "command": "uvx",
+  "args": ["--python", "/opt/homebrew/opt/python@3.13/bin/python3.13", "lldb-mcp-server"],
+  "env": {
+    "LLDB_MCP_ALLOW_LAUNCH": "1",
+    "LLDB_MCP_ALLOW_ATTACH": "1",
+    "PYTHONPATH": "/opt/homebrew/opt/llvm/lib/python3.13/site-packages"
+  }
+}'
+```
+
+**方式 2：手动配置（项目特定）**
+
 在项目根目录创建 `.mcp.json`（参见 [MCP 配置](#mcp-配置)）。
 
 #### Claude Desktop
