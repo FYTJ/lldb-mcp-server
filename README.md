@@ -122,6 +122,110 @@ Create `.mcp.json` in your project root (see [MCP Configuration](#mcp-configurat
 
 Edit `~/Library/Application Support/Claude/claude_desktop_config.json` on macOS (see [MCP Configuration](#mcp-configuration)).
 
+#### Cursor IDE
+
+**Option 1: Project-specific configuration (recommended)**
+
+Create `.cursor/mcp.json` in your project root:
+
+Intel (x86_64):
+```bash
+mkdir -p .cursor
+cat > .cursor/mcp.json << 'EOF'
+{
+  "mcpServers": {
+    "lldb-debugger": {
+      "command": "uvx",
+      "args": ["--python", "/usr/local/opt/python@3.13/bin/python3.13", "lldb-mcp-server"],
+      "env": {
+        "LLDB_MCP_ALLOW_LAUNCH": "1",
+        "LLDB_MCP_ALLOW_ATTACH": "1",
+        "PYTHONPATH": "/usr/local/opt/llvm/lib/python3.13/site-packages"
+      }
+    }
+  }
+}
+EOF
+```
+
+Apple Silicon (arm64):
+```bash
+mkdir -p .cursor
+cat > .cursor/mcp.json << 'EOF'
+{
+  "mcpServers": {
+    "lldb-debugger": {
+      "command": "uvx",
+      "args": ["--python", "/opt/homebrew/opt/python@3.13/bin/python3.13", "lldb-mcp-server"],
+      "env": {
+        "LLDB_MCP_ALLOW_LAUNCH": "1",
+        "LLDB_MCP_ALLOW_ATTACH": "1",
+        "PYTHONPATH": "/opt/homebrew/opt/llvm/lib/python3.13/site-packages"
+      }
+    }
+  }
+}
+EOF
+```
+
+**Option 2: Global configuration (for all projects)**
+
+Create `~/.cursor/mcp.json` in your home directory using the same JSON structure as above. This makes the LLDB debugger available across all your Cursor projects.
+
+After configuration, restart Cursor to load the MCP server.
+
+#### Codex (OpenAI)
+
+**Global configuration via CLI (recommended)**
+
+Intel (x86_64):
+```bash
+codex mcp add lldb-debugger \
+  --env LLDB_MCP_ALLOW_LAUNCH=1 \
+  --env LLDB_MCP_ALLOW_ATTACH=1 \
+  --env PYTHONPATH=/usr/local/opt/llvm/lib/python3.13/site-packages \
+  -- uvx --python /usr/local/opt/python@3.13/bin/python3.13 lldb-mcp-server
+```
+
+Apple Silicon (arm64):
+```bash
+codex mcp add lldb-debugger \
+  --env LLDB_MCP_ALLOW_LAUNCH=1 \
+  --env LLDB_MCP_ALLOW_ATTACH=1 \
+  --env PYTHONPATH=/opt/homebrew/opt/llvm/lib/python3.13/site-packages \
+  -- uvx --python /opt/homebrew/opt/python@3.13/bin/python3.13 lldb-mcp-server
+```
+
+**Manual configuration**
+
+Alternatively, edit `~/.codex/config.toml` directly:
+
+Intel (x86_64):
+```toml
+[mcp_servers.lldb-debugger]
+command = "uvx"
+args = ["--python", "/usr/local/opt/python@3.13/bin/python3.13", "lldb-mcp-server"]
+
+[mcp_servers.lldb-debugger.env]
+LLDB_MCP_ALLOW_LAUNCH = "1"
+LLDB_MCP_ALLOW_ATTACH = "1"
+PYTHONPATH = "/usr/local/opt/llvm/lib/python3.13/site-packages"
+```
+
+Apple Silicon (arm64):
+```toml
+[mcp_servers.lldb-debugger]
+command = "uvx"
+args = ["--python", "/opt/homebrew/opt/python@3.13/bin/python3.13", "lldb-mcp-server"]
+
+[mcp_servers.lldb-debugger.env]
+LLDB_MCP_ALLOW_LAUNCH = "1"
+LLDB_MCP_ALLOW_ATTACH = "1"
+PYTHONPATH = "/opt/homebrew/opt/llvm/lib/python3.13/site-packages"
+```
+
+After configuration, the MCP server will be available in both Codex CLI and IDE extension.
+
 ### 3. Start Using
 
 No manual installation required! When you configure the MCP server using `uvx`, it automatically:
@@ -133,9 +237,11 @@ Just configure `.mcp.json` and start Claude Code or restart Claude Desktop.
 
 ## MCP Configuration
 
-### Intel (x86_64)
+### Claude Code & Cursor
 
-Create `.mcp.json` (Claude Code) in your project root or edit Claude Desktop configuration:
+#### Intel (x86_64)
+
+Create `.mcp.json` (Claude Code) or `.cursor/mcp.json` (Cursor) in your project root:
 
 ```json
 {
@@ -152,7 +258,9 @@ Create `.mcp.json` (Claude Code) in your project root or edit Claude Desktop con
 }
 ```
 
-### Apple Silicon (arm64)
+**Note:** For Claude Desktop, edit `~/Library/Application Support/Claude/claude_desktop_config.json` instead.
+
+#### Apple Silicon (arm64)
 
 ```json
 {
@@ -169,7 +277,59 @@ Create `.mcp.json` (Claude Code) in your project root or edit Claude Desktop con
 }
 ```
 
+**Note:** For Claude Desktop, edit `~/Library/Application Support/Claude/claude_desktop_config.json` instead.
+
 **Important:** The `--python` argument specifies the full path to Homebrew Python 3.13, ensuring `uvx` does not use the system Python 3.9.
+
+### Codex
+
+#### Intel (x86_64)
+
+**CLI command:**
+```bash
+codex mcp add lldb-debugger \
+  --env LLDB_MCP_ALLOW_LAUNCH=1 \
+  --env LLDB_MCP_ALLOW_ATTACH=1 \
+  --env PYTHONPATH=/usr/local/opt/llvm/lib/python3.13/site-packages \
+  -- uvx --python /usr/local/opt/python@3.13/bin/python3.13 lldb-mcp-server
+```
+
+**Or edit `~/.codex/config.toml`:**
+```toml
+[mcp_servers.lldb-debugger]
+command = "uvx"
+args = ["--python", "/usr/local/opt/python@3.13/bin/python3.13", "lldb-mcp-server"]
+
+[mcp_servers.lldb-debugger.env]
+LLDB_MCP_ALLOW_LAUNCH = "1"
+LLDB_MCP_ALLOW_ATTACH = "1"
+PYTHONPATH = "/usr/local/opt/llvm/lib/python3.13/site-packages"
+```
+
+#### Apple Silicon (arm64)
+
+**CLI command:**
+```bash
+codex mcp add lldb-debugger \
+  --env LLDB_MCP_ALLOW_LAUNCH=1 \
+  --env LLDB_MCP_ALLOW_ATTACH=1 \
+  --env PYTHONPATH=/opt/homebrew/opt/llvm/lib/python3.13/site-packages \
+  -- uvx --python /opt/homebrew/opt/python@3.13/bin/python3.13 lldb-mcp-server
+```
+
+**Or edit `~/.codex/config.toml`:**
+```toml
+[mcp_servers.lldb-debugger]
+command = "uvx"
+args = ["--python", "/opt/homebrew/opt/python@3.13/bin/python3.13", "lldb-mcp-server"]
+
+[mcp_servers.lldb-debugger.env]
+LLDB_MCP_ALLOW_LAUNCH = "1"
+LLDB_MCP_ALLOW_ATTACH = "1"
+PYTHONPATH = "/opt/homebrew/opt/llvm/lib/python3.13/site-packages"
+```
+
+**Note:** You can also create project-scoped `.codex/config.toml` in your project root (trusted projects only).
 
 ### If LLDB Auto-detection Fails
 
