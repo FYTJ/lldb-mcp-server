@@ -101,7 +101,101 @@ Ensure the binary can be effectively debugged:
 5. **Debug loop**: poll events → inspect state → step → continue
 6. **Terminate** → `lldb_terminate(sessionId)`
 
-### 2.2 Crash Analysis Flow
+### 2.2 Two Ways to Start Debugging
+
+There are two distinct approaches to begin debugging, depending on whether you control process startup:
+
+#### Approach 1: Launch a New Process
+
+**When to use:**
+- You want to debug a program from the very beginning
+- You need to control command-line arguments or environment variables
+- You're debugging startup/initialization code
+- The program hasn't started yet
+
+**Workflow:**
+```
+1. lldb_initialize()                        # Create session
+2. lldb_createTarget(sessionId, file="...")  # Load executable
+3. lldb_setBreakpoint(sessionId, ...)       # Set breakpoints (optional)
+4. lldb_launch(sessionId, args=[], env={})  # Launch with args/env
+5. lldb_pollEvents(sessionId)               # Check process state
+```
+
+**Example:**
+```
+lldb_initialize()
+→ sessionId: "debug-001"
+
+lldb_createTarget(sessionId="debug-001", file="/path/to/program")
+lldb_setBreakpoint(sessionId="debug-001", symbol="main")
+lldb_launch(sessionId="debug-001", args=["--verbose", "input.txt"], env={"DEBUG": "1"})
+lldb_pollEvents(sessionId="debug-001")
+→ breakpointHit at main
+```
+
+**Security requirement:** Requires `LLDB_MCP_ALLOW_LAUNCH=1` environment variable in MCP configuration.
+
+#### Approach 2: Attach to Running Process
+
+**When to use:**
+- The program is already running (perhaps started by another system)
+- You want to debug a long-running service or daemon
+- You need to inspect a process that's currently misbehaving
+- You don't want to restart the process
+
+**Workflow:**
+```
+1. lldb_initialize()                           # Create session
+2. lldb_createTarget(sessionId, file="...")    # Load executable (same binary as running process)
+3. lldb_attach(sessionId, pid=1234)           # Attach by PID
+   OR
+   lldb_attach(sessionId, name="program_name") # Attach by process name
+4. lldb_pollEvents(sessionId)                  # Check process state (will be "stopped")
+5. lldb_setBreakpoint(sessionId, ...)          # Set breakpoints while attached
+6. lldb_continue(sessionId)                    # Resume execution
+```
+
+**Example:**
+```
+# First, find the process PID (using system tools)
+# $ ps aux | grep myapp
+# user  12345  0.0  0.1  ...  myapp
+
+lldb_initialize()
+→ sessionId: "debug-002"
+
+lldb_createTarget(sessionId="debug-002", file="/path/to/myapp")
+lldb_attach(sessionId="debug-002", pid=12345)
+lldb_pollEvents(sessionId="debug-002")
+→ processAttached, process is stopped
+
+lldb_setBreakpoint(sessionId="debug-002", symbol="process_request")
+lldb_continue(sessionId="debug-002")
+lldb_pollEvents(sessionId="debug-002")
+→ process running, waiting for breakpoint hit
+```
+
+**Security requirement:** Requires `LLDB_MCP_ALLOW_ATTACH=1` environment variable in MCP configuration.
+
+**Key differences:**
+
+| Aspect | Launch | Attach |
+|--------|--------|--------|
+| **Process control** | You start the process | Process is already running |
+| **Arguments/Environment** | Full control via `lldb_launch()` | Cannot modify (already set) |
+| **Debugging from start** | Yes, can debug initialization | No, misses early execution |
+| **Initial state** | Stopped at entry or first breakpoint | Stopped immediately upon attach |
+| **Use case** | New debugging session | Inspect live/hanging process |
+| **Permission needed** | `LLDB_MCP_ALLOW_LAUNCH=1` | `LLDB_MCP_ALLOW_ATTACH=1` |
+
+**Important notes:**
+- When attaching, the process is **paused immediately**. You must call `lldb_continue()` to resume it.
+- When launching, the process starts and runs until it hits a breakpoint or exits.
+- Both approaches require the same `lldb_createTarget()` step to load the binary file.
+- For attach, the target binary path should match the running process's executable.
+
+### 2.3 Crash Analysis Flow
 
 1. Initialize and load target
 2. Launch process (let it crash)
@@ -110,7 +204,7 @@ Ensure the binary can be effectively debugged:
 5. `lldb_stackTrace` + `lldb_readRegisters` + `lldb_disassemble` → analyze crash
 6. `lldb_analyzeCrash` → get exploitability assessment
 
-### 2.3 Key Principle: Interactive & Iterative
+### 2.4 Key Principle: Interactive & Iterative
 
 Each tool call's result informs your next action. Do NOT pre-plan all steps — debug iteratively based on runtime state.
 
