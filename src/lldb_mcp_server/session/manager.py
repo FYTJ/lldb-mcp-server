@@ -1037,7 +1037,6 @@ class SessionManager:
         with self._lock:
             sess = self._require_session(session_id)
             self._require_target(sess)
-            import lldb
 
             results = []
             for i in range(sess.target.GetNumModules()):

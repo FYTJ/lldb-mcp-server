@@ -1,7 +1,8 @@
 try:
     from fastmcp.exceptions import ToolError
 except Exception:  # pragma: no cover - fallback for Python environments without fastmcp
-    class ToolError(Exception):
+
+    class ToolError(Exception):  # type: ignore[no-redef]
         """Fallback ToolError when fastmcp is unavailable."""
 
         pass

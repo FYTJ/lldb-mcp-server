@@ -1,8 +1,9 @@
-import os
 import json
+import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, List
+from typing import Any, Dict, List, Optional
+from typing import List as _ListType
 
 
 def _find_config_path() -> Optional[Path]:
@@ -43,14 +44,17 @@ class Config:
     server_port: int = 8765
     preferred_python_executable: Optional[str] = None
     lldb_python_paths: Optional[List[str]] = None
-    lldb_framework_paths: Optional[List[str]] = None
+    lldb_framework_paths: Optional[List[str]] = None  # Legacy, kept for backward compatibility
     project_root: Optional[str] = None
     src_path: Optional[str] = None
+    # Platform abstraction fields
+    platform_override: Optional[str] = None  # Override platform detection ("macos", "linux", "windows")
+    platform_configs: Optional[Dict[str, Any]] = None  # Platform-specific configurations
 
 
 _raw = _load_config_json()
 
-from typing import List as _ListType
+
 def _get_nested(d: dict, path: _ListType[str], default=None):
     cur = d
     for k in path:
@@ -75,3 +79,6 @@ config.lldb_python_paths = list(ppaths)
 config.lldb_framework_paths = list(fpaths)
 config.project_root = _raw.get("project_root") or config.project_root
 config.src_path = _raw.get("src_path") or config.src_path
+# Platform abstraction configuration
+config.platform_override = _raw.get("platform")
+config.platform_configs = _get_nested(_raw, ["lldb", "platform_configs"], {})

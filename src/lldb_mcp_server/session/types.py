@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Any, Optional
 
+
 @dataclass
 class Session:
     session_id: str
