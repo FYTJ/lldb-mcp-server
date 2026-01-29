@@ -25,7 +25,7 @@ LLDB MCP Server is a debugging server based on the [Model Context Protocol (MCP)
 - 📊 **Event-driven Architecture**: Non-blocking event collection for state changes, breakpoint hits, stdout/stderr
 - 🛡️ **Security Analysis**: Crash exploitability classification and dangerous function detection
 - 📝 **Session Recording**: Automatically records all commands and output with timestamps
-- 💻 **Cross-platform**: Supports macOS (Intel & Apple Silicon) and Linux (Ubuntu, Fedora, Arch)
+- 💻 **Cross-platform**: Supports macOS (Intel & Apple Silicon), Linux (Ubuntu, Fedora, Arch), and Windows (experimental)
 
 ## Documentation
 
@@ -34,12 +34,13 @@ LLDB MCP Server is a debugging server based on the [Model Context Protocol (MCP)
 - **[Usage Guide](docs/USAGE.md)** - Usage examples, Claude Code Skill integration, and test programs
 - **[Troubleshooting](docs/TROUBLESHOOTING.md)** - Common issues and solutions for all platforms
 - **[Linux Installation](docs/LINUX_INSTALLATION.md)** - Detailed Linux installation guide
+- **[Windows Installation](docs/WINDOWS_INSTALLATION.md)** - Detailed Windows installation guide
 
 ## Prerequisites
 
 ### System Requirements
 
-- **Operating System**: macOS (Intel or Apple Silicon) **or** Linux (Ubuntu 22.04+, Fedora 38+, Arch Linux)
+- **Operating System**: macOS (Intel or Apple Silicon), Linux (Ubuntu 22.04+, Fedora 38+, Arch Linux), or Windows (10+)
 - **LLDB** with Python bindings (version 14+, 18+ recommended)
 - **Python 3.10+**
 
@@ -52,6 +53,10 @@ LLDB MCP Server is a debugging server based on the [Model Context Protocol (MCP)
 **Linux:**
 - **Package Manager**: apt (Ubuntu/Debian), dnf (Fedora/RHEL), or pacman (Arch)
 - **LLDB**: Install via `sudo apt install lldb-18 python3-lldb-18` (Ubuntu) or equivalent
+
+**Windows:**
+- **Chocolatey** (recommended) or another LLVM/LLDB distribution that includes Python bindings
+- **LLVM/LLDB**: Install via `choco install -y llvm python`
 
 ## Quick Start
 
@@ -107,6 +112,26 @@ lldb-mcp-server --help
 > - Use `lldb-mcp-server` command directly (not `uvx lldb-mcp-server`)
 
 **For other Linux distributions (Fedora, Arch, etc.)**, see the [Linux Installation Guide](docs/LINUX_INSTALLATION.md).
+
+#### Windows (Chocolatey)
+
+```powershell
+# Install LLVM (includes LLDB) and Python
+choco install -y llvm python
+
+# Verify LLDB and Python
+lldb --version
+python --version
+
+# Verify LLDB Python bindings
+python -c "import lldb; print('LLDB Python bindings OK')"
+
+# Install lldb-mcp-server
+pip install -U lldb-mcp-server
+lldb-mcp-server --help
+```
+
+If `import lldb` fails, see the [Windows Installation Guide](docs/WINDOWS_INSTALLATION.md) for how to set `LLDB_PYTHON_PATH`.
 
 ### 2. Configure MCP
 

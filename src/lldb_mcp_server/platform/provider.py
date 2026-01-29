@@ -136,6 +136,8 @@ def get_provider(platform_type: str, config: Optional[Any] = None) -> AbstractPl
 
         return LinuxProvider(config)
     elif platform_type == "windows":
-        raise ValueError("Windows platform is not yet supported (planned for Phase 2)")
+        from .windows import WindowsProvider
+
+        return WindowsProvider(config)
     else:
         raise ValueError(f"Unsupported platform: {platform_type}")

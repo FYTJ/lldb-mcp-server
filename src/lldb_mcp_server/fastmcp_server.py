@@ -76,7 +76,7 @@ def ensure_lldb_env(reexec: bool = False) -> bool:
 
     if platform_type == "unknown":
         logger.error("Unsupported platform detected")
-        print("Unsupported platform. LLDB MCP Server requires macOS or Linux.", file=sys.stderr)
+        print("Unsupported platform. LLDB MCP Server requires macOS, Linux, or Windows.", file=sys.stderr)
         return False
 
     try:
