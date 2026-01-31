@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "lldb-debugger": {
+      "command": "uvx",
+      "args": ["-q", "lldb-mcp-server", "--transport", "stdio"],
+      "env": {
+        "LLDB_MCP_ALLOW_LAUNCH": "1",
+        "LLDB_MCP_ALLOW_ATTACH": "1",
+        "LLDB_PYTHON_PATH": "/usr/lib/llvm-19/lib/python3.12/site-packages"
+      }
+    }
+  }
+}

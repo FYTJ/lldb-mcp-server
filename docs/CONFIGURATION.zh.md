@@ -57,18 +57,26 @@ claude mcp add-json --scope user lldb-debugger '{
 
 **Linux:**
 ```bash
+# 首先，获取你的 LLDB Python 路径
+LLDB_PATH=$(/usr/bin/lldb-19 -P)
+echo "LLDB Python 路径: $LLDB_PATH"
+
+# 然后添加 MCP 服务器配置
 claude mcp add-json --scope user lldb-debugger '{
   "type": "stdio",
-  "command": "lldb-mcp-server",
-  "args": [],
+  "command": "uvx",
+  "args": ["--python", "/usr/bin/python3.12", "-q", "lldb-mcp-server", "--transport", "stdio"],
   "env": {
     "LLDB_MCP_ALLOW_LAUNCH": "1",
     "LLDB_MCP_ALLOW_ATTACH": "1",
-    "LLDB_PYTHON_PATH": "/usr/lib/llvm-18/lib/python3.12/site-packages"
+    "LLDB_PYTHON_PATH": "'"$LLDB_PATH"'"
   }
 }'
 ```
-> **注意：** 将 `/usr/lib/llvm-18/lib/python3.12/site-packages` 替换为 `lldb-18 -P` 的输出
+> **重要说明：**
+> - 如果你的系统 Python 3.12 路径不同，请替换 `/usr/bin/python3.12`
+> - `--python` 参数必须与 LLDB 编译时使用的 Python 版本匹配
+> - 检查 LLDB 的 Python 版本：`lldb-19 -P | grep python3.`
 
 ### 项目特定配置
 
@@ -113,13 +121,12 @@ claude mcp add-json --scope user lldb-debugger '{
 {
   "mcpServers": {
     "lldb-debugger": {
-      "command": "lldb-mcp-server",
-      "args": [],
+      "command": "uvx",
+      "args": ["--python", "/usr/bin/python3.12", "-q", "lldb-mcp-server", "--transport", "stdio"],
       "env": {
         "LLDB_MCP_ALLOW_LAUNCH": "1",
         "LLDB_MCP_ALLOW_ATTACH": "1",
-        "LLDB_PYTHON_PATH": "/usr/lib/llvm-18/lib/python3.12/site-packages",
-        "PATH": "/home/YOUR_USERNAME/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+        "LLDB_PYTHON_PATH": "/usr/lib/llvm-19/lib/python3.12/site-packages"
       }
     }
   }
@@ -127,10 +134,9 @@ claude mcp add-json --scope user lldb-debugger '{
 ```
 
 > **Linux 注意事项：**
-> - 使用 `lldb-mcp-server` 命令（不是 `uvx`）
-> - 设置 `LLDB_PYTHON_PATH` 为 `lldb-18 -P` 的输出
-> - 包含完整的 `PATH`，其中包含 `~/.local/bin`
-> - 将 `YOUR_USERNAME` 替换为你的用户名
+> - 使用 `uvx` 配合 `--python /usr/bin/python3.12` 以匹配 LLDB 的 Python 版本
+> - 设置 `LLDB_PYTHON_PATH` 为 `lldb-19 -P` 的输出
+> - 如果使用不同的 LLDB 版本，请替换 Python 路径（使用 `lldb-19 -P | grep python3.` 检查）
 
 ## Claude Desktop 配置
 
@@ -180,18 +186,22 @@ claude mcp add-json --scope user lldb-debugger '{
 {
   "mcpServers": {
     "lldb-debugger": {
-      "command": "lldb-mcp-server",
-      "args": [],
+      "command": "uvx",
+      "args": ["--python", "/usr/bin/python3.12", "-q", "lldb-mcp-server", "--transport", "stdio"],
       "env": {
         "LLDB_MCP_ALLOW_LAUNCH": "1",
         "LLDB_MCP_ALLOW_ATTACH": "1",
-        "LLDB_PYTHON_PATH": "/usr/lib/llvm-18/lib/python3.12/site-packages",
-        "PATH": "/home/YOUR_USERNAME/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+        "LLDB_PYTHON_PATH": "/usr/lib/llvm-19/lib/python3.12/site-packages"
       }
     }
   }
 }
 ```
+
+> **重要说明：**
+> - 将 `/usr/bin/python3.12` 替换为你的 Python 3.12 路径
+> - 将 `/usr/lib/llvm-19/lib/python3.12/site-packages` 替换为 `lldb-19 -P` 的输出
+> - 两个路径中的 Python 版本必须与 LLDB 的 Python 版本匹配
 
 > **注意：** 将 `/usr/lib/llvm-18/lib/python3.12/site-packages` 替换为 `lldb-18 -P` 的输出，将 `YOUR_USERNAME` 替换为你的实际用户名。
 
@@ -250,20 +260,19 @@ cat > .cursor/mcp.json << 'EOF'
 {
   "mcpServers": {
     "lldb-debugger": {
-      "command": "lldb-mcp-server",
-      "args": [],
+      "command": "uvx",
+      "args": ["--python", "/usr/bin/python3.12", "-q", "lldb-mcp-server", "--transport", "stdio"],
       "env": {
         "LLDB_MCP_ALLOW_LAUNCH": "1",
         "LLDB_MCP_ALLOW_ATTACH": "1",
-        "LLDB_PYTHON_PATH": "/usr/lib/llvm-18/lib/python3.12/site-packages",
-        "PATH": "/home/YOUR_USERNAME/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+        "LLDB_PYTHON_PATH": "/usr/lib/llvm-19/lib/python3.12/site-packages"
       }
     }
   }
 }
 EOF
 ```
-> **注意：** 将 `/usr/lib/llvm-18/lib/python3.12/site-packages` 替换为 `lldb-18 -P` 的输出，将 `YOUR_USERNAME` 替换为你的实际用户名。
+> **注意：** 将 `/usr/lib/llvm-19/lib/python3.12/site-packages` 替换为 `lldb-19 -P` 的输出。
 
 ### 方式 2：全局配置
 
@@ -321,25 +330,31 @@ PYTHONPATH = "/opt/homebrew/opt/llvm/lib/python3.13/site-packages"
 
 **CLI:**
 ```bash
+# 获取 LLDB Python 路径
+LLDB_PATH=$(/usr/bin/lldb-19 -P)
+
 codex mcp add lldb-debugger \
   --env LLDB_MCP_ALLOW_LAUNCH=1 \
   --env LLDB_MCP_ALLOW_ATTACH=1 \
-  --env LLDB_PYTHON_PATH=/usr/lib/llvm-18/lib/python3.12/site-packages \
-  -- lldb-mcp-server
+  --env LLDB_PYTHON_PATH="$LLDB_PATH" \
+  -- uvx --python /usr/bin/python3.12 -q lldb-mcp-server --transport stdio
 ```
 
 **手动 - 编辑 `~/.codex/config.toml`:**
 ```toml
 [mcp_servers.lldb-debugger]
-command = "lldb-mcp-server"
-args = []
+command = "uvx"
+args = ["--python", "/usr/bin/python3.12", "-q", "lldb-mcp-server", "--transport", "stdio"]
 
 [mcp_servers.lldb-debugger.env]
 LLDB_MCP_ALLOW_LAUNCH = "1"
 LLDB_MCP_ALLOW_ATTACH = "1"
-LLDB_PYTHON_PATH = "/usr/lib/llvm-18/lib/python3.12/site-packages"
+LLDB_PYTHON_PATH = "/usr/lib/llvm-19/lib/python3.12/site-packages"
 ```
-> **注意：** 将 `/usr/lib/llvm-18/lib/python3.12/site-packages` 替换为 `lldb-18 -P` 的输出
+> **重要说明：**
+> - 将 `/usr/bin/python3.12` 替换为你的 Python 3.12 路径
+> - 将 `/usr/lib/llvm-19/lib/python3.12/site-packages` 替换为 `lldb-19 -P` 的输出
+> - Python 版本必须与 LLDB 的 Python 版本匹配
 
 **注意：** 你也可以在项目根目录创建项目特定的 `.codex/config.toml`（仅限受信任的项目）。
 
@@ -364,8 +379,8 @@ lldb -P
 **Linux:**
 ```bash
 # 使用带版本的 lldb -P 命令
-lldb-18 -P
-# 示例输出：/usr/lib/llvm-18/lib/python3.12/site-packages
+lldb-19 -P
+# 示例输出：/usr/lib/llvm-19/lib/python3.12/site-packages
 
 # 或手动检查
 ls /usr/lib/llvm-*/lib/python*/site-packages/lldb
@@ -392,7 +407,7 @@ ls /usr/lib/llvm-*/lib/python*/site-packages/lldb
   "env": {
     "LLDB_MCP_ALLOW_LAUNCH": "1",
     "LLDB_MCP_ALLOW_ATTACH": "1",
-    "LLDB_PYTHON_PATH": "/usr/lib/llvm-18/lib/python3.12/site-packages"
+    "LLDB_PYTHON_PATH": "/usr/lib/llvm-19/lib/python3.12/site-packages"
   }
 }
 ```

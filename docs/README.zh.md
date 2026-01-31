@@ -83,28 +83,29 @@ lldb --version
 ```bash
 # 安装 LLDB 和 Python 绑定
 sudo apt update
-sudo apt install lldb-18 python3-lldb-18
+sudo apt install -y lldb-19 python3-lldb-19 liblldb-19-dev
 
-# 安装 lldb-mcp-server（使用 pip，不要在 Linux 上使用 uvx）
-pip3 install --user lldb-mcp-server
+# 安装 uv（提供 uvx 命令）
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # 查找 LLDB Python 路径
-lldb-18 -P
-# 示例输出：/usr/lib/llvm-18/lib/python3.12/site-packages
+lldb-19 -P
+# 示例输出：/usr/lib/llvm-19/lib/python3.12/site-packages
 
-# 设置 LLDB_PYTHON_PATH（添加到 ~/.bashrc 以持久化）
-export LLDB_PYTHON_PATH="/usr/lib/llvm-18/lib/python3.12/site-packages"
+# 验证 Python 3.12 可用（LLDB-19 绑定需要）
+which python3.12
+python3.12 --version
 
-# 验证安装
-python3 -c "import lldb; print('LLDB Python 绑定正常')"
-lldb-mcp-server --help
+# 测试 LLDB Python 绑定
+python3.12 -c "import sys; sys.path.insert(0, '$(/usr/bin/lldb-19 -P)'); import lldb; print('LLDB Python 绑定正常')"
 ```
 
-> **⚠️ 重要提示 - Linux 用户：**
-> - **不要在 Linux 上使用 `uvx`** - 它创建的隔离环境无法访问系统 LLDB
-> - **请使用 `pip3 install --user lldb-mcp-server`**
-> - **务必在配置中设置 `LLDB_PYTHON_PATH`**
-> - 直接使用 `lldb-mcp-server` 命令（不要使用 `uvx lldb-mcp-server`）
+> **⚠️ 关键 - Linux Python 版本匹配：**
+> - **LLDB Python 绑定是为特定 Python 版本编译的**（例如，LLDB-19 → Python 3.12）
+> - **`uvx` 默认使用系统默认 Python**
+> - **必须强制 uvx 使用匹配的 Python 版本** `--python /usr/bin/python3.12`
+> - **务必设置 `LLDB_PYTHON_PATH`** 为 `lldb-19 -P` 的输出
+> - **Python 版本不匹配会导致 `cannot import name '_lldb'` 错误**
 
 **其他 Linux 发行版（Fedora、Arch 等）**，请参见 [Linux 安装指南](LINUX_INSTALLATION.md)。
 
@@ -146,18 +147,27 @@ claude mcp add-json --scope user lldb-debugger '{
 
 **Linux:**
 ```bash
+# 首先，获取你的 LLDB Python 路径
+LLDB_PATH=$(/usr/bin/lldb-19 -P)
+echo "LLDB Python 路径: $LLDB_PATH"
+
+# 然后添加 MCP 服务器配置
 claude mcp add-json --scope user lldb-debugger '{
   "type": "stdio",
-  "command": "lldb-mcp-server",
-  "args": [],
+  "command": "uvx",
+  "args": ["--python", "/usr/bin/python3.12", "-q", "lldb-mcp-server", "--transport", "stdio"],
   "env": {
     "LLDB_MCP_ALLOW_LAUNCH": "1",
     "LLDB_MCP_ALLOW_ATTACH": "1",
-    "LLDB_PYTHON_PATH": "/usr/lib/llvm-18/lib/python3.12/site-packages"
+    "LLDB_PYTHON_PATH": "'"$LLDB_PATH"'"
   }
 }'
 ```
-> **注意：** 将 `/usr/lib/llvm-18/lib/python3.12/site-packages` 替换为 `lldb-18 -P` 的输出
+> **重要说明：**
+> - 如果你的系统 Python 3.12 路径不同，请替换 `/usr/bin/python3.12`
+> - `--python` 参数必须与 LLDB 编译时使用的 Python 版本匹配
+> - 检查 LLDB 的 Python 版本：`lldb-19 -P | grep python3.`
+> - 由于 LLDB-18 存在初始化错误，建议使用 LLDB-19
 
 #### Claude Desktop
 
@@ -183,11 +193,8 @@ claude mcp add-json --scope user lldb-debugger '{
 
 ### 3. 开始使用
 
-**macOS：**
+**所有平台：**
 无需手动安装！使用 `uvx` 配置 MCP 服务器后，它会自动安装和管理包。
-
-**Linux：**
-使用 `pip` 安装并配置环境变量后，服务器即可使用。
 
 只需配置你的 IDE 并启动 Claude Code 或重启 Claude Desktop。
 
@@ -245,13 +252,20 @@ hash -r
 
 ### Linux：`cannot import name '_lldb'`
 
-```bash
-# 使用 pip 安装（不是 uvx）
-pip3 install --user lldb-mcp-server
+此错误发生在 uvx 使用的 Python 版本与 LLDB 编译时使用的版本不同时。
 
-# 设置 LLDB_PYTHON_PATH
-lldb-18 -P
-export LLDB_PYTHON_PATH="/usr/lib/llvm-18/lib/python3.12/site-packages"
+```bash
+# 检查 LLDB 的 Python 版本
+lldb-19 -P
+# 示例：/usr/lib/llvm-19/lib/python3.12/site-packages（Python 3.12）
+
+# 检查 uvx 的默认 Python
+uvx --python-preference system python --version
+# 如果显示 3.14，但 LLDB 需要 3.12，这就是问题所在
+
+# 解决方案：强制 uvx 使用匹配的 Python 版本
+# 更新你的 MCP 配置以包含："--python", "/usr/bin/python3.12"
+# 完整示例见上面的 Linux 配置部分
 ```
 
 更多问题和解决方案请参见 [故障排除指南](TROUBLESHOOTING.zh.md)。

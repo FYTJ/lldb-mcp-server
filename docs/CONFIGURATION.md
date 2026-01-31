@@ -57,18 +57,26 @@ claude mcp add-json --scope user lldb-debugger '{
 
 **Linux:**
 ```bash
+# First, get your LLDB Python path
+LLDB_PATH=$(/usr/bin/lldb-19 -P)
+echo "LLDB Python path: $LLDB_PATH"
+
+# Then add MCP server configuration
 claude mcp add-json --scope user lldb-debugger '{
   "type": "stdio",
-  "command": "lldb-mcp-server",
-  "args": [],
+  "command": "uvx",
+  "args": ["--python", "/usr/bin/python3.12", "-q", "lldb-mcp-server", "--transport", "stdio"],
   "env": {
     "LLDB_MCP_ALLOW_LAUNCH": "1",
     "LLDB_MCP_ALLOW_ATTACH": "1",
-    "LLDB_PYTHON_PATH": "/usr/lib/llvm-18/lib/python3.12/site-packages"
+    "LLDB_PYTHON_PATH": "'"$LLDB_PATH"'"
   }
 }'
 ```
-> **Note:** Replace `/usr/lib/llvm-18/lib/python3.12/site-packages` with output from `lldb-18 -P`
+> **Important:**
+> - Replace `/usr/bin/python3.12` with your system's Python 3.12 path if different
+> - The `--python` argument must match the Python version LLDB was compiled for
+> - Check LLDB's Python version: `lldb-19 -P | grep python3.`
 
 ### Project-Specific Configuration
 
@@ -113,13 +121,12 @@ Create `.mcp.json` in your project root directory:
 {
   "mcpServers": {
     "lldb-debugger": {
-      "command": "lldb-mcp-server",
-      "args": [],
+      "command": "uvx",
+      "args": ["--python", "/usr/bin/python3.12", "-q", "lldb-mcp-server", "--transport", "stdio"],
       "env": {
         "LLDB_MCP_ALLOW_LAUNCH": "1",
         "LLDB_MCP_ALLOW_ATTACH": "1",
-        "LLDB_PYTHON_PATH": "/usr/lib/llvm-18/lib/python3.12/site-packages",
-        "PATH": "/home/YOUR_USERNAME/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+        "LLDB_PYTHON_PATH": "/usr/lib/llvm-19/lib/python3.12/site-packages"
       }
     }
   }
@@ -127,10 +134,9 @@ Create `.mcp.json` in your project root directory:
 ```
 
 > **Linux Notes:**
-> - Use `lldb-mcp-server` command (not `uvx`)
-> - Set `LLDB_PYTHON_PATH` to output from `lldb-18 -P`
-> - Include full `PATH` with `~/.local/bin`
-> - Replace `YOUR_USERNAME` with your username
+> - Use `uvx` with `--python /usr/bin/python3.12` to match LLDB's Python version
+> - Set `LLDB_PYTHON_PATH` to output from `lldb-19 -P`
+> - Replace Python path if using different LLDB version (check with `lldb-19 -P | grep python3.`)
 
 ## Claude Desktop Configuration
 
@@ -180,18 +186,22 @@ Edit `~/.config/claude/claude_desktop_config.json`:
 {
   "mcpServers": {
     "lldb-debugger": {
-      "command": "lldb-mcp-server",
-      "args": [],
+      "command": "uvx",
+      "args": ["--python", "/usr/bin/python3.12", "-q", "lldb-mcp-server", "--transport", "stdio"],
       "env": {
         "LLDB_MCP_ALLOW_LAUNCH": "1",
         "LLDB_MCP_ALLOW_ATTACH": "1",
-        "LLDB_PYTHON_PATH": "/usr/lib/llvm-18/lib/python3.12/site-packages",
-        "PATH": "/home/YOUR_USERNAME/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+        "LLDB_PYTHON_PATH": "/usr/lib/llvm-19/lib/python3.12/site-packages"
       }
     }
   }
 }
 ```
+
+> **Important:**
+> - Replace `/usr/bin/python3.12` with your Python 3.12 path
+> - Replace `/usr/lib/llvm-19/lib/python3.12/site-packages` with output from `lldb-19 -P`
+> - The Python version in both paths must match LLDB's Python version
 
 > **Note:** Replace `/usr/lib/llvm-18/lib/python3.12/site-packages` with output from `lldb-18 -P`, and `YOUR_USERNAME` with your actual username.
 
@@ -321,25 +331,31 @@ PYTHONPATH = "/opt/homebrew/opt/llvm/lib/python3.13/site-packages"
 
 **CLI:**
 ```bash
+# Get LLDB Python path
+LLDB_PATH=$(/usr/bin/lldb-19 -P)
+
 codex mcp add lldb-debugger \
   --env LLDB_MCP_ALLOW_LAUNCH=1 \
   --env LLDB_MCP_ALLOW_ATTACH=1 \
-  --env LLDB_PYTHON_PATH=/usr/lib/llvm-18/lib/python3.12/site-packages \
-  -- lldb-mcp-server
+  --env LLDB_PYTHON_PATH="$LLDB_PATH" \
+  -- uvx --python /usr/bin/python3.12 -q lldb-mcp-server --transport stdio
 ```
 
 **Manual - Edit `~/.codex/config.toml`:**
 ```toml
 [mcp_servers.lldb-debugger]
-command = "lldb-mcp-server"
-args = []
+command = "uvx"
+args = ["--python", "/usr/bin/python3.12", "-q", "lldb-mcp-server", "--transport", "stdio"]
 
 [mcp_servers.lldb-debugger.env]
 LLDB_MCP_ALLOW_LAUNCH = "1"
 LLDB_MCP_ALLOW_ATTACH = "1"
-LLDB_PYTHON_PATH = "/usr/lib/llvm-18/lib/python3.12/site-packages"
+LLDB_PYTHON_PATH = "/usr/lib/llvm-19/lib/python3.12/site-packages"
 ```
-> **Note:** Replace `/usr/lib/llvm-18/lib/python3.12/site-packages` with output from `lldb-18 -P`
+> **Important:**
+> - Replace `/usr/bin/python3.12` with your Python 3.12 path
+> - Replace `/usr/lib/llvm-19/lib/python3.12/site-packages` with output from `lldb-19 -P`
+> - Python version must match LLDB's Python version
 
 **Note:** You can also create project-scoped `.codex/config.toml` in your project root (trusted projects only).
 

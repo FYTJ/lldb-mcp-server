@@ -87,73 +87,93 @@ Ensure `.mcp.json` contains:
 
 ### Issue: `cannot import name '_lldb'` on Linux
 
-**Cause:** `uvx` creates isolated environments that cannot access system LLDB Python bindings.
+**Cause:** Python version mismatch between `uvx` and LLDB Python bindings.
+
+- LLDB Python bindings are compiled for a specific Python version (e.g., LLDB-19 → Python 3.12)
+- `uvx` defaults to system Python, which may be different (e.g., Python 3.14 from linuxbrew)
 
 **Solution:**
 
 ```bash
-# 1. Uninstall if installed with uvx
-# (No action needed, uvx uses temporary environments)
+# 1. Check LLDB's Python version
+lldb-19 -P
+# Output: /usr/lib/llvm-19/lib/python3.12/site-packages
+#         ^^^^^^^^ This shows Python 3.12
 
-# 2. Install with pip instead
-pip3 install --user lldb-mcp-server
+# 2. Check uvx's default Python
+uvx --python-preference system python --version
+# If this shows 3.14, but LLDB needs 3.12, that's the problem
 
-# 3. Find LLDB Python path
-lldb-18 -P
-# Output: /usr/lib/llvm-18/lib/python3.12/site-packages
+# 3. Check if Python 3.12 is available
+which python3.12
+python3.12 --version
 
-# 4. Set environment variable permanently
-echo 'export LLDB_PYTHON_PATH="/usr/lib/llvm-18/lib/python3.12/site-packages"' >> ~/.bashrc
-source ~/.bashrc
+# 4. Update MCP configuration to force Python 3.12
+# Get LLDB path
+LLDB_PATH=$(/usr/bin/lldb-19 -P)
 
-# 5. Update configuration to use lldb-mcp-server command
-# In .mcp.json or claude_desktop_config.json:
-{
-  "command": "lldb-mcp-server",  # NOT "uvx"
-  "args": [],
+# Update configuration (Claude Code)
+claude mcp add-json --scope user lldb-debugger '{
+  "type": "stdio",
+  "command": "uvx",
+  "args": ["--python", "/usr/bin/python3.12", "-q", "lldb-mcp-server", "--transport", "stdio"],
   "env": {
-    "LLDB_PYTHON_PATH": "/usr/lib/llvm-18/lib/python3.12/site-packages"
+    "LLDB_MCP_ALLOW_LAUNCH": "1",
+    "LLDB_MCP_ALLOW_ATTACH": "1",
+    "LLDB_PYTHON_PATH": "'"$LLDB_PATH"'"
   }
-}
+}'
+
+# 5. Verify the fix
+LLDB_PYTHON_PATH=$(/usr/bin/lldb-19 -P) \
+uvx --python /usr/bin/python3.12 -q lldb-mcp-server --help
+# Expected: shows help output without import errors
 ```
 
-### Issue: `lldb-mcp-server: command not found` on Linux
+**Key Points:**
+- The `--python /usr/bin/python3.12` argument forces uvx to use Python 3.12
+- Replace `lldb-19` with your LLDB version (e.g., `lldb-18`)
+- Replace `/usr/bin/python3.12` with the path matching your LLDB's Python version
 
-**Cause:** `~/.local/bin` is not in PATH.
+### Issue: `uvx: command not found` on Linux
+
+**Cause:** `uv` is not installed or not in PATH.
 
 **Solution:**
 
 ```bash
-# 1. Add to PATH permanently
-echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
-source ~/.bashrc
+# 1. Install uv (provides uvx command)
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# 2. Or use full path in configuration
-{
-  "command": "/home/YOUR_USERNAME/.local/bin/lldb-mcp-server",
-  "env": {
-    "PATH": "/home/YOUR_USERNAME/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-  }
-}
+# 2. Reload shell to update PATH
+source ~/.bashrc  # or source ~/.zshrc for zsh
+
+# 3. Verify installation
+which uvx
+uvx --version
 ```
 
 ### Issue: Python version mismatch on Linux
 
-**Cause:** LLDB Python bindings built for different Python version than system default.
+**Cause:** LLDB Python bindings built for different Python version than what uvx uses.
 
 **Solution:**
 
 ```bash
 # 1. Check Python versions
-python3 --version  # System Python
-lldb-18 -P | grep python  # LLDB Python version
+lldb-19 -P | grep -o 'python3\.[0-9]*'  # LLDB Python version (e.g., python3.12)
+uvx --python-preference system python --version  # uvx's default Python
 
-# 2. If mismatch, ensure LLDB_PYTHON_PATH is set correctly
-# Example: If LLDB uses Python 3.12 but system is 3.14:
-export LLDB_PYTHON_PATH="/usr/lib/llvm-18/lib/python3.12/site-packages"
+# 2. Force uvx to use matching Python version
+# If LLDB needs Python 3.12, update MCP config to include:
+{
+  "command": "uvx",
+  "args": ["--python", "/usr/bin/python3.12", "-q", "lldb-mcp-server", "--transport", "stdio"]
+}
 
-# 3. Verify import works
-python3 -c "import sys; sys.path.insert(0, '/usr/lib/llvm-18/lib/python3.12/site-packages'); import lldb; print('OK')"
+# 3. Verify the fix
+LLDB_PYTHON_PATH=$(/usr/bin/lldb-19 -P) \
+uvx --python /usr/bin/python3.12 -c "import lldb; print('OK')"
 ```
 
 ### Issue: LLDB Python module not found on Ubuntu/Debian
@@ -165,12 +185,21 @@ python3 -c "import sys; sys.path.insert(0, '/usr/lib/llvm-18/lib/python3.12/site
 ```bash
 # Install LLDB with Python bindings
 sudo apt update
-sudo apt install lldb-18 python3-lldb-18
+sudo apt install lldb-19 python3-lldb-19
 
 # Verify installation
-lldb-18 -P
-python3 -c "import sys; sys.path.insert(0, '$(lldb-18 -P)'); import lldb; print('OK')"
+lldb-19 -P
+# Expected: /usr/lib/llvm-19/lib/python3.12/site-packages
+
+# Verify Python 3.12 is available
+which python3.12
+python3.12 --version
+
+# Test import
+python3.12 -c "import sys; sys.path.insert(0, '$(/usr/bin/lldb-19 -P)'); import lldb; print('OK')"
 ```
+
+> **Note:** If LLDB-19 is not available on your Ubuntu version, you can use LLDB-18 or another available version. Just make sure to match the Python version accordingly.
 
 ### Issue: LLDB Python module not found on Fedora/RHEL
 
@@ -224,10 +253,11 @@ python3 -c "import lldb; print('OK')"
    uvx --python /opt/homebrew/opt/python@3.13/bin/python3.13 lldb-mcp-server
 
    # Linux
-   lldb-mcp-server
+   LLDB_PYTHON_PATH=$(/usr/bin/lldb-19 -P) \
+   uvx --python /usr/bin/python3.12 -q lldb-mcp-server --help
 
-   # Should output: "LLDB MCP Server starting..." and wait for input
-   # Press Ctrl+C to exit
+   # Should output help information without errors
+   # Press Ctrl+C to exit if it starts waiting for input
    ```
 
 3. **Verify LLDB import:**
@@ -327,8 +357,10 @@ lldb -P
 
 # Linux
 which lldb lldb-18 lldb-19
-lldb-18 --version
-lldb-18 -P
+lldb-19 --version  # or lldb-18 if using LLDB-18
+lldb-19 -P
+# Check Python version in path
+lldb-19 -P | grep -o 'python3\.[0-9]*'
 ```
 
 **Check Python LLDB import:**

@@ -88,28 +88,29 @@ lldb --version
 ```bash
 # Install LLDB with Python bindings
 sudo apt update
-sudo apt install lldb-18 python3-lldb-18
+sudo apt install lldb-19 python3-lldb-19
 
-# Install lldb-mcp-server (use pip, NOT uvx on Linux)
-pip3 install --user lldb-mcp-server
+# Install uv (provides uvx command)
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # Find LLDB Python path
-lldb-18 -P
-# Example output: /usr/lib/llvm-18/lib/python3.12/site-packages
+lldb-19 -P
+# Example output: /usr/lib/llvm-19/lib/python3.12/site-packages
 
-# Set LLDB_PYTHON_PATH (add to ~/.bashrc for persistence)
-export LLDB_PYTHON_PATH="/usr/lib/llvm-18/lib/python3.12/site-packages"
+# Verify Python 3.12 is available (required for LLDB-19 bindings)
+which python3.12
+python3.12 --version
 
-# Verify installation
-python3 -c "import lldb; print('LLDB Python bindings OK')"
-lldb-mcp-server --help
+# Test LLDB Python bindings
+python3.12 -c "import sys; sys.path.insert(0, '$(/usr/bin/lldb-19 -P)'); import lldb; print('LLDB Python bindings OK')"
 ```
 
-> **⚠️ IMPORTANT - Linux Users:**
-> - **DO NOT use `uvx` on Linux** - it creates isolated environments that cannot access system LLDB
-> - **Use `pip3 install --user lldb-mcp-server`** instead
-> - **Always set `LLDB_PYTHON_PATH`** in your configuration
-> - Use `lldb-mcp-server` command directly (not `uvx lldb-mcp-server`)
+> **⚠️ CRITICAL - Linux Python Version Matching:**
+> - **LLDB Python bindings are compiled for a specific Python version** (e.g., LLDB-19 → Python 3.12)
+> - **`uvx` defaults to the system's default Python** (often 3.14 from linuxbrew)
+> - **You MUST force uvx to use the matching Python version** with `--python /usr/bin/python3.12`
+> - **Always set `LLDB_PYTHON_PATH`** to the output of `lldb-19 -P`
+> - **Mismatch between Python versions causes `cannot import name '_lldb'` error**
 
 **For other Linux distributions (Fedora, Arch, etc.)**, see the [Linux Installation Guide](docs/LINUX_INSTALLATION.md).
 
@@ -171,18 +172,27 @@ claude mcp add-json --scope user lldb-debugger '{
 
 **Linux:**
 ```bash
+# First, get your LLDB Python path
+LLDB_PATH=$(/usr/bin/lldb-19 -P)
+echo "LLDB Python path: $LLDB_PATH"
+
+# Then add MCP server configuration
 claude mcp add-json --scope user lldb-debugger '{
   "type": "stdio",
-  "command": "lldb-mcp-server",
-  "args": [],
+  "command": "uvx",
+  "args": ["--python", "/usr/bin/python3.12", "-q", "lldb-mcp-server", "--transport", "stdio"],
   "env": {
     "LLDB_MCP_ALLOW_LAUNCH": "1",
     "LLDB_MCP_ALLOW_ATTACH": "1",
-    "LLDB_PYTHON_PATH": "/usr/lib/llvm-18/lib/python3.12/site-packages"
+    "LLDB_PYTHON_PATH": "'"$LLDB_PATH"'"
   }
 }'
 ```
-> **Note:** Replace `/usr/lib/llvm-18/lib/python3.12/site-packages` with output from `lldb-18 -P`
+> **Important Notes:**
+> - Replace `/usr/bin/python3.12` with your system's Python 3.12 path if different
+> - The `--python` argument must match the Python version LLDB was compiled for
+> - Check LLDB's Python version: `lldb-19 -P | grep python3.`
+> - If you have LLDB-18, use `lldb-18 -P` and adjust Python version accordingly
 
 #### Claude Desktop
 
@@ -208,11 +218,8 @@ See [Configuration Guide](docs/CONFIGURATION.md) for detailed instructions.
 
 ### 3. Start Using
 
-**macOS:**
+**All Platforms:**
 No manual installation required! When you configure the MCP server using `uvx`, it automatically installs and manages the package.
-
-**Linux:**
-After installing with `pip` and configuring environment variables, the server is ready to use.
 
 Just configure your IDE and start Claude Code or restart Claude Desktop.
 
@@ -270,13 +277,20 @@ hash -r
 
 ### Linux: `cannot import name '_lldb'`
 
-```bash
-# Install with pip (not uvx)
-pip3 install --user lldb-mcp-server
+This error occurs when uvx uses a different Python version than LLDB was compiled for.
 
-# Set LLDB_PYTHON_PATH
-lldb-18 -P
-export LLDB_PYTHON_PATH="/usr/lib/llvm-18/lib/python3.12/site-packages"
+```bash
+# Check LLDB's Python version
+lldb-19 -P
+# Example: /usr/lib/llvm-19/lib/python3.12/site-packages (Python 3.12)
+
+# Check uvx's default Python
+uvx --python-preference system python --version
+# If this shows 3.14, but LLDB needs 3.12, that's the problem
+
+# Solution: Force uvx to use matching Python version
+# Update your MCP config to include: "--python", "/usr/bin/python3.12"
+# See Linux configuration section above for complete example
 ```
 
 For more issues and solutions, see the [Troubleshooting Guide](docs/TROUBLESHOOTING.md).
